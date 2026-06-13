@@ -110,9 +110,33 @@ under-constrained by a *flat objective* (the control sets are weak for the stron
 - *Recommendation for the user:* if tighter `c`/`w_mob` constraints are wanted, strengthen the
   UCT/Buro control sets (e.g. add a strong fixed MCTS) — a konspekt-level change, your call.
 
-### Main experiment (running, launched 13:15:37 UTC; est. ~60–75 min → ~14:20–14:30 UTC)
-tournament (15 pairs × 200 × 2 variants = 6000 games @ B=10000) → self-play (uct_pb_cooldown,
-2000 × 2 = 4000 games) → analysis. Drivers auto-load the tuned configs. Resumable.
+### Main experiment (DONE) — tournament 6000 + self-play 4000 @ B=10000
+Verified clean (no dupes/corrupt). Final hypothesis verdicts (Holm-adjusted):
+
+| Hyp. | Verdict | Key result |
+|------|---------|-----------|
+| **H1** | ✅ supported | UCT beats Naive-Buro **0.88** cooldown (CI .82–.92) vs **0.77** classic; edge +11 p.p. bigger under cooldown ($p\approx10^{-29}$) |
+| **H2** | ❌ rejected | UCT-PB-cooldown beats UCT by only **+4 p.p.** (need ≥10); UCT-PB-naive *loses* to plain UCT (0.32) |
+| **H3** | ❌ rejected | Cooldown-Buro beats Naive-Buro **100%** on cooldown **but also +26 p.p. on classic** (not isolated to the rule) |
+| **H4** | ✅ supported | 2nd-player (White) win rate **0.584** classic (CI .56–.61) → **0.491** cooldown (CI .47–.51, ≈50%): the structural edge vanishes |
+
+Strongest player: **UCT-PB-cooldown ≳ UCT > UCT-PB-naive ≫ Cooldown-Buro > Naive-Buro > Random.**
+Main takeaways: gains come from MCTS itself, not progressive bias; the cooldown-aware heuristic is
+generally good (helps in both variants); the rule removes the 2nd-player advantage.
+
+### Run reliability (the Vast box was unstable)
+The 128-core instance **rebooted/migrated ≥2×** mid-run (13:31, 14:47) plus intermittent network
+drops. No data lost thanks to resumable JSONL: a self-healing wrapper (`run_main.sh`) resumed the
+tournament; a host migration left self-play's pool workers **deadlocked** (parent alive, no
+progress), which a stall-detecting on-box watchdog (`run_sp_wd.sh`) killed + relaunched, driving
+cooldown self-play 464→2000. **Lesson for next time:** the resumable design + watchdog were
+essential on a flaky spot box.
+
+### Deliverables
+- Report: `06-report/report.pdf` (9 pp, Polish, with result + PDP plots). Slides:
+  `07-slides/slides.pdf` (9 frames). Tuning PDP plots: `03-tuning/plot_tuning.py`.
+- All raw results, logs, and the Optuna DB copied to the Mac (gitignored run artifacts).
+- **Cost note:** the Vast box is idle now — stop/destroy it to save money (all artifacts are local).
 
 ## Open questions / deviations
 - None blocking. Length-estimate correction above is a logged deviation from the konspekt's
