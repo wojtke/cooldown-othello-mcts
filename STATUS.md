@@ -88,6 +88,32 @@ against the konspekt, plus added tests. Whole suite: `./run_tests.sh` (29 tests,
 - Also added `04-experiments/test_metrics.py` (metrics vs independent board-diff replay) and
   `05-analysis/test_stats.py` (Wilson/McNemar/Holm/binomial known values).
 
+## Production run — Vast.ai, 128 cores (2026-06-13)
+Full pipeline run autonomously on a rented 128-core box. Repo: https://github.com/wojtke/cooldown-othello-mcts
+Web game (live): https://wojtke.github.io/cooldown-othello-mcts/
+
+### Tuning (done, ~48 min: 12:24→13:13 UTC)
+Cascade wiring **verified correct** (per-variant; each control carries the right tuned params per
+konspekt Table 1). No code bugs; all best_values plausible. Tuned configs:
+- naive_buro: w_mob=4.75 (best 0.583) · cooldown_buro: λc=0.52, w_mob=2.49 (0.708)
+- uct: c=2.23 classic / c=0.52 cooldown (0.958 / 0.950)
+- uct_pb_naive: c=0.75,w_H=2.42 classic / c=1.11,w_H=1.12 cooldown (0.933 / 0.842)
+- uct_pb_cooldown: c=0.72,w_H=5.02 classic / c=0.54,w_H=8.71 cooldown (0.817 / 0.717)
+
+**Flagged (methodology, NOT code bugs — not changed autonomously):** some hyperparameters are
+under-constrained by a *flat objective* (the control sets are weak for the strong players):
+- `naive_buro` w_mob is near-arbitrary — **21/30** trials within 0.02 of best.
+- `uct` c sits at opposite bounds across variants (2.23 vs 0.52) because UCT@B2000 saturates
+  win-rate (~0.95) vs its {Random + 1-ply Buro} controls → **8/30** trials within 0.02 (cooldown).
+- `uct_pb_cooldown_cooldown` low c=0.54 is coherent with high w_H=8.71 (heuristic steering replaces
+  UCB exploration). PB studies are otherwise well-constrained (1–3/30 within 0.02).
+- *Recommendation for the user:* if tighter `c`/`w_mob` constraints are wanted, strengthen the
+  UCT/Buro control sets (e.g. add a strong fixed MCTS) — a konspekt-level change, your call.
+
+### Main experiment (running, launched 13:15:37 UTC; est. ~60–75 min → ~14:20–14:30 UTC)
+tournament (15 pairs × 200 × 2 variants = 6000 games @ B=10000) → self-play (uct_pb_cooldown,
+2000 × 2 = 4000 games) → analysis. Drivers auto-load the tuned configs. Resumable.
+
 ## Open questions / deviations
 - None blocking. Length-estimate correction above is a logged deviation from the konspekt's
   preliminary numbers (which it explicitly said to verify).
