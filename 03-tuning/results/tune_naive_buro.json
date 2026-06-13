@@ -1,0 +1,32 @@
+{
+  "algo": "naive_buro",
+  "variant": "cooldown",
+  "best_value": 0.5833333333333334,
+  "best_params": {
+    "w_mob": 4.75357153204958
+  },
+  "controls": [
+    {
+      "name": "random"
+    },
+    {
+      "name": "uct",
+      "c": 1.4142135623730951,
+      "budget": 500
+    },
+    {
+      "name": "cooldown_buro",
+      "lambda_c": 1.0,
+      "w_mob": 1.0
+    }
+  ],
+  "budget": 2000,
+  "trials": 30,
+  "games_per_control": 20,
+  "seed_base": 0,
+  "search_space": {
+    "w_mob": "[0,5] linear"
+  },
+  "sampler": "TPESampler(seed=42)",
+  "timestamp": "2026-06-13T12:25:57"
+}

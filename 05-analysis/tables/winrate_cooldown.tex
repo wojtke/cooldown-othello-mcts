@@ -1,0 +1,18 @@
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrrrrrr}
+\toprule
+Player & Random & Naive-Buro & Cooldown-Buro & UCT & UCT-PB-naive & UCT-PB-cooldown \\
+\midrule
+Random & -- & 0.12 & 0.15 & 0.00 & 0.00 & 0.00 \\
+Naive-Buro & 0.89 & -- & 0.00 & 0.12 & 0.24 & 0.14 \\
+Cooldown-Buro & 0.85 & 1.00 & -- & 0.08 & 0.16 & 0.03 \\
+UCT & 1.00 & 0.88 & 0.92 & -- & 0.69 & 0.46 \\
+UCT-PB-naive & 1.00 & 0.76 & 0.84 & 0.32 & -- & 0.31 \\
+UCT-PB-cooldown & 1.00 & 0.86 & 0.97 & 0.54 & 0.69 & -- \\
+\bottomrule
+\end{tabular}
+\caption{Row win rate vs column, cooldown 6x6.}
+\label{tab:winrate_cooldown}
+\end{table}

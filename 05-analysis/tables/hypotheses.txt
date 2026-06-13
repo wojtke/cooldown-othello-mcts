@@ -1,0 +1,41 @@
+HYPOTHESIS VERDICTS
+============================================================
+
+H1: SUPPORTED
+   UCT beats Naive-Buro (>=60% on cooldown; bigger edge on cooldown)
+     cooldown_rate: 0.8775
+     cooldown_ci: (0.8248176388465808, 0.9159536266850868)
+     classic_rate: 0.765
+     edge_cooldown_vs_classic: 0.11249999999999993
+     p: 9.237398300715988e-30
+     n: 200
+     holm_adjusted_p: 0.0000
+
+H2: not supported
+   UCT-PB-cooldown > UCT on cooldown by >=10pp, more than UCT-PB-naive
+     pb_cooldown_rate: 0.54
+     pb_cooldown_ci: (0.4708216309361468, 0.6076706885903875)
+     pb_naive_rate: 0.315
+     edge_pp: 4.0000000000000036
+     p: 0.28882049717476627
+     n: 200
+     holm_adjusted_p: 0.2888
+
+H3: not supported
+   Cooldown-Buro > Naive-Buro on cooldown (>=10pp), ~equal on classic (<5pp)
+     cooldown_rate: 1.0
+     cooldown_ci: (0.9811539940816791, 1.0)
+     classic_rate: 0.765
+     cooldown_edge_pp: 50.0
+     classic_edge_pp: 26.5
+     p: 1.2446030555722283e-60
+     mcnemar_p: 1.4210854715202004e-14
+     n: 200
+     holm_adjusted_p: 0.0000
+
+H4: SUPPORTED
+   2nd-player edge vanishes under cooldown (self-play)
+     classic: {'white_rate': 0.584, 'ci': (0.5622570680541376, 0.6054208561889761), 'n': 2000, 'p': np.float64(5.994327499060948e-14)}
+     cooldown: {'white_rate': 0.49075, 'ci': (0.4688790220640726, 0.5126564446115369), 'n': 2000, 'p': np.float64(0.43385550204546236)}
+     p: 5.994327499060948e-14
+     holm_adjusted_p: 0.0000

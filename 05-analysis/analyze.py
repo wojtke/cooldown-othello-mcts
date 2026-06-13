@@ -214,6 +214,7 @@ def evaluate_hypotheses(tour: pd.DataFrame, selfp: pd.DataFrame) -> dict:
         c_rate = H["H4"]["classic"]["white_rate"]
         k_rate = H["H4"]["cooldown"]["white_rate"]
         H["H4"]["supported"] = (c_rate >= 0.55) and (k_rate <= 0.50)
+        H["H4"]["p"] = H["H4"]["classic"]["p"]   # significance that classic has a 2nd-player edge
         primary_p["H4"] = H["H4"]["classic"]["p"]
 
     H["_holm"] = holm_bonferroni(primary_p)
@@ -358,7 +359,7 @@ def table_cooldown_metrics(tour) -> str:
 
 
 def verdict_report(H: dict) -> str:
-    lines = ["HYPOTHESIS VERDICTS (dummy data — illustrative only)", "=" * 60, ""]
+    lines = ["HYPOTHESIS VERDICTS", "=" * 60, ""]
     holm = H.get("_holm", {})
     for key in ("H1", "H2", "H3", "H4"):
         if key not in H:
@@ -378,23 +379,23 @@ def verdict_report(H: dict) -> str:
 
 
 def table_hypotheses(H: dict) -> str:
-    header = ["Hyp.", "Verdict", "key effect", "p", "holm-p"]
+    header = ["Hip.", "Wynik", "kluczowy efekt", "$p$", "holm-$p$"]
     holm = H.get("_holm", {})
     rows = []
     eff = {
-        "H1": lambda h: f"cooldown WR {h['cooldown_rate']:.2f}",
-        "H2": lambda h: f"edge {h['edge_pp']:.0f}pp",
-        "H3": lambda h: f"cool {h['cooldown_edge_pp']:.0f}pp / cls {h['classic_edge_pp']:.0f}pp",
-        "H4": lambda h: f"W cls {h['classic']['white_rate']:.2f} / cool {h['cooldown']['white_rate']:.2f}",
+        "H1": lambda h: f"WR cooldown {h['cooldown_rate']:.2f}",
+        "H2": lambda h: f"przewaga {h['edge_pp']:.0f} p.p.",
+        "H3": lambda h: f"cool {h['cooldown_edge_pp']:.0f} / klasyk {h['classic_edge_pp']:.0f} p.p.",
+        "H4": lambda h: f"biały {h['classic']['white_rate']:.2f} / {h['cooldown']['white_rate']:.2f}",
     }
     for key in ("H1", "H2", "H3", "H4"):
         if key not in H:
             continue
         h = H[key]
         p = h.get("p", float("nan"))
-        rows.append([key, "yes" if h.get("supported") else "no", eff[key](h),
+        rows.append([key, "tak" if h.get("supported") else "nie", eff[key](h),
                      f"{p:.3f}", f"{holm.get(key, float('nan')):.3f}"])
-    return _tex_table(rows, header, "Hypothesis verdicts (effect size + p-value).",
+    return _tex_table(rows, header, "Weryfikacja hipotez (wielkość efektu + $p$).",
                       "tab:hypotheses")
 
 
