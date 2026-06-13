@@ -316,7 +316,7 @@ def fig_cooldown_metrics(tour: pd.DataFrame):
 
 def _tex_table(body_rows, header, caption, label) -> str:
     cols = "l" + "r" * (len(header) - 1)
-    lines = [r"\begin{table}[h]", r"\centering", r"\small",
+    lines = [r"\begin{table}[H]", r"\centering", r"\small",
              rf"\begin{{tabular}}{{{cols}}}", r"\toprule",
              " & ".join(header) + r" \\", r"\midrule"]
     lines += [" & ".join(row) + r" \\" for row in body_rows]

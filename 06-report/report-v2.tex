@@ -16,6 +16,8 @@
 \usepackage{parskip}                 % akapity blokowe: bez wcięcia, z odstępem
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.18}
+\usepgfplotslibrary{statistics}      % boxplot, hist
+\pgfplotsset{colormap={rylgn}{rgb255=(215,48,39) rgb255=(255,255,191) rgb255=(26,152,80)}}
 \usepackage[numbers]{natbib}
 \bibliographystyle{plainnat}
 
@@ -237,46 +239,19 @@ przeciwnie -- jest \emph{lepszy} pod regułą (0,79) niż na klasyku (0,63).
 
 \input{../05-analysis/tables/ranking.tex}
 
-\begin{figure}[h]\centering
-\begin{tikzpicture}
-\begin{axis}[ybar, bar width=9pt, width=\textwidth, height=6cm,
-  symbolic x coords={UCT-PB-cooldown,UCT-PB-naive,UCT,Cooldown-Buro,Naive-Buro,Random},
-  xtick=data, x tick label style={rotate=18,anchor=east,font=\small},
-  ymin=0, ymax=1, ylabel={śr.\ współczynnik wygranych}, legend pos=north east,
-  enlarge x limits=0.10]
-\addplot[fill=blue!55] coordinates {(UCT-PB-cooldown,0.844)(UCT-PB-naive,0.859)(UCT,0.632)(Cooldown-Buro,0.346)(Naive-Buro,0.279)(Random,0.040)};
-\addplot[fill=red!60]  coordinates {(UCT-PB-cooldown,0.814)(UCT-PB-naive,0.644)(UCT,0.788)(Cooldown-Buro,0.424)(Naive-Buro,0.278)(Random,0.052)};
-\legend{klasyk,cooldown}
-\end{axis}
-\end{tikzpicture}
-\caption{Średni współczynnik wygranych metod na obu wariantach gry (te same dane co tab.~\ref{tab:ranking}).}
-\label{fig:ranking}
-\end{figure}
+\input{figs/fig_ranking.tex}
 
 Pełną strukturę par pokazują heatmapy współczynników wygranych (rys.~\ref{fig:heatmaps}): wartość
 to odsetek wygranych gracza z~wiersza przeciw graczowi z~kolumny.
 
-\begin{figure}[h]\centering
-  \begin{subfigure}{0.49\textwidth}\centering
-    \includegraphics[width=\linewidth]{../05-analysis/figures/heatmap_winrate_classic.png}
-    \caption{Klasyczne 6$\times$6}\end{subfigure}\hfill
-  \begin{subfigure}{0.49\textwidth}\centering
-    \includegraphics[width=\linewidth]{../05-analysis/figures/heatmap_winrate_cooldown.png}
-    \caption{Cooldown 6$\times$6}\end{subfigure}
-  \caption{Współczynnik wygranych gracza w~wierszu przeciw graczowi w~kolumnie.}
-  \label{fig:heatmaps}
-\end{figure}
+\input{figs/fig_heatmaps.tex}
 
 \subsection{Różnice pionków na końcu partii}
 Rysunek~\ref{fig:margin} pokazuje rozkłady różnicy pionków na końcu partii (z~perspektywy danej
 metody). Silniejsze metody nie tylko wygrywają częściej, ale i~wyraźniejszą przewagą pionków;
 heurystyki i~gracz losowy mają mediany ujemne lub bliskie zera.
 
-\begin{figure}[h]\centering
-  \includegraphics[width=0.96\textwidth]{../05-analysis/figures/margin_boxplots.png}
-  \caption{Różnica pionków na końcu partii (metoda $-$ przeciwnik), wg metody i~wariantu.}
-  \label{fig:margin}
-\end{figure}
+\input{figs/fig_margin.tex}
 
 \subsection{Metryki specyficzne dla reguły stygnięcia}
 Aby zmierzyć, jak często reguła w~ogóle „działa”, liczymy dwie wielkości (rys.~\ref{fig:cdmetrics}).
@@ -288,22 +263,14 @@ metryki mierzą \emph{częstość aktywacji} reguły, a~nie jakość zablokowane
 że zablokowany ruch jest „dobry”; pokazujemy jedynie, że reguła realnie ingeruje w~grę (mediana
 kilkunastu procent decyzji).
 
-\begin{figure}[h]\centering
-  \includegraphics[width=0.92\textwidth]{../05-analysis/figures/cooldown_metrics.png}
-  \caption{Częstość aktywacji reguły: whipsaw rate (klasyk) i~cooldown-blocked rate (Cooldown).}
-  \label{fig:cdmetrics}
-\end{figure}
+\input{figs/fig_cdmetrics.tex}
 
 Bardziej bezpośrednim skutkiem reguły jest „długość życia” pionka -- ile razy dane pole zostaje
 odwrócone w~partii (rys.~\ref{fig:lifespan}). Pod regułą stygnięcia rozkład ma \emph{krótszy ogon}:
 pionki są rzadziej wielokrotnie odbijane, bo świeże bicia są chwilowo chronione -- co jest istotą
 modyfikacji.
 
-\begin{figure}[h]\centering
-  \includegraphics[width=0.80\textwidth]{../05-analysis/figures/lifespan.png}
-  \caption{Rozkład maksymalnej liczby odwróceń pojedynczego pola w~partii.}
-  \label{fig:lifespan}
-\end{figure}
+\input{figs/fig_lifespan.tex}
 
 \subsection{Strojenie hiperparametrów}\label{sec:tuning-results}
 Końcowe hiperparametry zebrano w~tabeli~\ref{tab:hyperparams}. Najciekawsza obserwacja: stała
@@ -317,24 +284,9 @@ dla UCT-PB-cooldown na Cooldown ($c{=}0{,}54$, $w_H{=}8{,}7$).
 
 \input{../05-analysis/tables/hyperparams.tex}
 
-\begin{figure}[h]\centering
-  \includegraphics[width=0.9\textwidth]{../05-analysis/figures/tuning_uct_c_sensitivity.png}
-  \caption{Zależność współczynnika wygranych UCT od stałej eksploracji $c$ (wykres PDP/slice).}
-  \label{fig:tuning}
-\end{figure}
+\input{figs/fig_tuning_uct.tex}
 
-\begin{figure}[h]\centering
-  \begin{subfigure}{0.49\textwidth}\centering
-    \includegraphics[width=\linewidth]{../05-analysis/figures/tuning_slice_uct_pb_cooldown_cooldown.png}
-    \caption{UCT-PB-cooldown @ Cooldown}\end{subfigure}\hfill
-  \begin{subfigure}{0.49\textwidth}\centering
-    \includegraphics[width=\linewidth]{../05-analysis/figures/tuning_slice_cooldown_buro_cooldown.png}
-    \caption{Cooldown-Buro @ Cooldown}\end{subfigure}
-  \caption{Zależność celu od~hiperparametrów dla wybranych metod (PDP/slice). Dla PB-cooldown widać
-    realną zależność od $c$ i~$w_H$; dla heurystyki Buro funkcja jest płaska względem
-    $w_{\mathrm{mob}}$ (parametr słabo ograniczony).}
-  \label{fig:tuning2}
-\end{figure}
+\input{figs/fig_tuning_slices.tex}
 
 % ============================================================ 8. WERYFIKACJA HIPOTEZ
 \section{Weryfikacja hipotez}\label{sec:weryfikacja}

@@ -1,0 +1,16 @@
+\begin{figure}[H]\centering
+\begin{tikzpicture}
+\begin{axis}[width=0.82\textwidth, height=5.6cm, ymajorgrids,
+  xlabel={maksymalna liczba odwróceń pojedynczego pola w~partii},
+  ylabel={liczba partii}, legend pos=north east, xmin=0, xmax=12]
+\addplot+[hist={bins=11,data min=0.5,data max=11.5}, fill=blue!40, draw=blue!60!black,
+  opacity=0.65, mark=none] table[y=v]{figs/lifespan_classic.dat};
+\addplot+[hist={bins=11,data min=0.5,data max=11.5}, fill=red!45, draw=red!60!black,
+  opacity=0.65, mark=none] table[y=v]{figs/lifespan_cooldown.dat};
+\legend{klasyk,cooldown}
+\end{axis}
+\end{tikzpicture}
+\caption{Rozkład „długości życia” pionka -- maksymalnej liczby odwróceń pojedynczego pola
+w~partii. Pod regułą stygnięcia rozkład ma krótszy ogon.}
+\label{fig:lifespan}
+\end{figure}

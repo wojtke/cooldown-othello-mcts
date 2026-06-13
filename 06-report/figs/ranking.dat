@@ -1,0 +1,7 @@
+method classic cooldown
+UCT-PB-cooldown 0.8435 0.8135
+UCT-PB-naive 0.8590 0.6440
+UCT 0.6325 0.7880
+Cooldown-Buro 0.3460 0.4245
+Naive-Buro 0.2790 0.2775
+Random 0.0400 0.0525

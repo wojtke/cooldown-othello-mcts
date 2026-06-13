@@ -1,0 +1,44 @@
+\pgfplotsset{
+  heatmapaxis/.style={
+    width=7.6cm, height=7.0cm, enlargelimits=false, axis on top,
+    colormap name=rylgn, point meta min=0, point meta max=1,
+    xtick={0,1,2,3,4,5},
+    xticklabels={Random,Naive-Buro,Cooldown-Buro,UCT,UCT-PB-naive,UCT-PB-cooldown},
+    ytick={0,1,2,3,4,5},
+    yticklabels={Random,Naive-Buro,Cooldown-Buro,UCT,UCT-PB-naive,UCT-PB-cooldown},
+    y dir=reverse,
+    x tick label style={rotate=45,anchor=east,font=\tiny},
+    y tick label style={font=\tiny},
+    tick style={draw=none},
+  },
+  heatlabels/.style={
+    only marks, mark=none, point meta=explicit,
+    nodes near coords={\pgfmathprintnumber[fixed,fixed zerofill,precision=2]{\pgfplotspointmeta}},
+    every node near coord/.append style={font=\tiny,anchor=center,text=black},
+  },
+}
+\begin{figure}[H]\centering
+\begin{subfigure}{0.49\textwidth}\centering
+\begin{tikzpicture}
+\begin{axis}[heatmapaxis, title={\small Klasyczne 6$\times$6}]
+\addplot[matrix plot*, mesh/cols=6, mesh/ordering=rowwise, point meta=explicit]
+  table[meta=c] {figs/heatmap_classic_grid.dat};
+\addplot[heatlabels] table[meta=c] {figs/heatmap_classic_lab.dat};
+\end{axis}
+\end{tikzpicture}
+\caption{Klasyczne 6$\times$6}
+\end{subfigure}\hfill
+\begin{subfigure}{0.49\textwidth}\centering
+\begin{tikzpicture}
+\begin{axis}[heatmapaxis, title={\small Cooldown 6$\times$6}, colorbar,
+  colorbar style={width=0.18cm,font=\tiny}]
+\addplot[matrix plot*, mesh/cols=6, mesh/ordering=rowwise, point meta=explicit]
+  table[meta=c] {figs/heatmap_cooldown_grid.dat};
+\addplot[heatlabels] table[meta=c] {figs/heatmap_cooldown_lab.dat};
+\end{axis}
+\end{tikzpicture}
+\caption{Cooldown 6$\times$6}
+\end{subfigure}
+\caption{Współczynnik wygranych gracza w~wierszu przeciw graczowi w~kolumnie.}
+\label{fig:heatmaps}
+\end{figure}

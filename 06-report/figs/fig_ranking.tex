@@ -1,0 +1,16 @@
+\begin{figure}[H]\centering
+\begin{tikzpicture}
+\begin{axis}[ybar, bar width=9pt, width=\textwidth, height=6cm,
+  symbolic x coords={UCT-PB-cooldown,UCT-PB-naive,UCT,Cooldown-Buro,Naive-Buro,Random},
+  xtick=data, x tick label style={rotate=18,anchor=east,font=\small},
+  ymin=0, ymax=1, ylabel={śr.\ współczynnik wygranych},
+  legend pos=north east, enlarge x limits=0.10, ymajorgrids, tick align=outside]
+\addplot[fill=blue!55] table[x=method,y=classic] {figs/ranking.dat};
+\addplot[fill=red!60]  table[x=method,y=cooldown] {figs/ranking.dat};
+\legend{klasyk,cooldown}
+\end{axis}
+\end{tikzpicture}
+\caption{Średni współczynnik wygranych metod na obu wariantach gry (te same dane co
+tab.~\ref{tab:ranking}).}
+\label{fig:ranking}
+\end{figure}
