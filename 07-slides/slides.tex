@@ -1,0 +1,109 @@
+\documentclass[aspectratio=169]{beamer}
+\usetheme{Madrid}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[polish]{babel}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\beamertemplatenavigationsymbolsempty
+
+\title[Cooldown Othello 6$\times$6]{MCTS/UCT w~grze Cooldown Othello 6$\times$6}
+\author[W. Jasiński]{Wojciech Jasiński}
+\institute[MSI2]{Metody Sztucznej Inteligencji 2}
+\date{czerwiec 2026}
+
+\begin{document}
+
+\begin{frame}\titlepage\end{frame}
+
+% --------------------------------------------------------------------
+\begin{frame}{Gra i~reguła stygnięcia}
+\textbf{Othello 6$\times$6} -- klasyczne zasady na mniejszej planszy.\\[4pt]
+\textbf{Reguła stygnięcia (Cooldown):} pionki postawione lub odwrócone w~poprzedniej turze są
+\emph{chronione} przez jedną turę -- nie można ich od razu odbić.
+\begin{itemize}
+  \item eliminuje \emph{whipsaw} (naprzemienne odbijanie tych samych pionków),
+  \item wprowadza zależność od historii: stan to para \texttt{(plansza, ostudzone pionki)},
+  \item osłabia tablice transpozycji i~klasyczne wagi pozycyjne.
+\end{itemize}
+\vspace{4pt}
+Empirycznie (1000 partii losowych): reguła obniża rozgałęzienie (5,3$\to$4,5), długość gry
+$\approx$34 półruchy w~obu wariantach.
+\end{frame}
+
+% --------------------------------------------------------------------
+\begin{frame}{Gracze i~hipotezy}
+\textbf{6~graczy:} Random; Naive-Buro, Cooldown-Buro (heurystyki 1-warstwowe);
+UCT; UCT-PB-naive, UCT-PB-cooldown (UCT + progressive bias).
+\begin{block}{Hipotezy}
+\begin{itemize}\small
+  \item[H1] UCT $>$ heurystyki, mocniej pod regułą stygnięcia.
+  \item[H2] Progressive bias z~Cooldown-Buro $>$ bazowy UCT o~$\geq$10~p.p.
+  \item[H3] Cooldown-Buro $>$ Naive-Buro tylko pod regułą stygnięcia.
+  \item[H4] Przewaga drugiego gracza zanika pod regułą stygnięcia.
+\end{itemize}
+\end{block}
+\end{frame}
+
+% --------------------------------------------------------------------
+\begin{frame}{Metodologia}
+\begin{itemize}
+  \item Silnik gry i~MCTS napisane od zera (Python); eksperymenty zrównoleglone.
+  \item Turniej round-robin: 15~par $\times$ 200~partii $\times$ 2~warianty $=$ 6000~partii,
+        budżet $B=10\,000$ symulacji/ruch.
+  \item Samogra najsilniejszego wariantu ($\geq$2000 partii) dla H4.
+  \item Strojenie: Optuna~TPE, kaskadowo, $B_{\text{tune}}=2000$.
+  \item Statystyka: przedziały Wilsona, test dwumianowy, McNemar, korekta Holma.
+\end{itemize}
+\end{frame}
+
+% --------------------------------------------------------------------
+\begin{frame}{Wyniki -- współczynniki wygranych}
+\centering
+\includegraphics[height=0.62\textheight]{../05-analysis/figures/heatmap_winrate_cooldown.png}\\
+{\small MCTS $\gg$ heurystyki. Ranking: UCT-PB-cooldown $\gtrsim$ UCT $>$ UCT-PB-naive
+$\gg$ Cooldown-Buro $>$ Naive-Buro $>$ Random.}
+\end{frame}
+
+% --------------------------------------------------------------------
+\begin{frame}{Weryfikacja hipotez}
+\begin{itemize}
+  \item[\textbf{H1}] \textcolor{green!50!black}{\textbf{potwierdzona}} -- UCT bije Naive-Buro
+        88\% (Cooldown) vs 77\% (klasyk); przewaga o~$\sim$11~p.p.\ większa pod regułą.
+  \item[\textbf{H2}] \textcolor{red!70!black}{\textbf{odrzucona}} -- PB daje tylko $\sim$4~p.p.;
+        UCT-PB-naive wręcz \emph{przegrywa} z~bazowym UCT.
+  \item[\textbf{H3}] \textcolor{red!70!black}{\textbf{odrzucona}} -- Cooldown-Buro lepsza
+        w~\emph{obu} wariantach (100\% Cooldown, $+$26~p.p.\ klasyk), nie tylko pod regułą.
+  \item[\textbf{H4}] \textcolor{green!50!black}{\textbf{potwierdzona}} -- przewaga drugiego gracza
+        58\% (klasyk) $\to$ 49\% (Cooldown): strukturalna przewaga \emph{znika} pod regułą.
+\end{itemize}
+\end{frame}
+
+% --------------------------------------------------------------------
+\begin{frame}{Strojenie: zależność celu od~$c$ (PDP)}
+\centering
+\includegraphics[height=0.6\textheight]{../05-analysis/figures/tuning_uct_c_sensitivity.png}\\
+{\small Cel niemal płaski w~$c$ (klasyk) -- UCT przytłacza zestaw kontrolny, więc $c$ jest słabo
+ograniczone; pod regułą stygnięcia łagodna preferencja małego~$c$.}
+\end{frame}
+
+% --------------------------------------------------------------------
+\begin{frame}{Wnioski}
+\begin{itemize}
+  \item Najsilniejszy gracz: UCT-PB-cooldown -- ale główny zysk pochodzi z~samego MCTS,
+        nie z~progressive bias.
+  \item Reguła stygnięcia realnie zmienia grę i~mocno karze ,,naiwne'' bicia
+        (zapaść Naive-Buro pod regułą).
+  \item Zaskoczenie: heurystyka świadoma reguły pomaga \emph{także} w~klasycznym Othello --
+        ,,trwałość bicia'' to ogólnie wartościowy sygnał.
+  \item Reguła zmienia balans: znika przewaga drugiego gracza -- gra staje się bardziej
+        zrównoważona.
+\end{itemize}
+\vspace{6pt}
+\centering\small Kod: \texttt{github.com/wojtke/cooldown-othello-mcts} \quad|\quad
+Gra: \texttt{wojtke.github.io/cooldown-othello-mcts}
+\end{frame}
+
+\begin{frame}\centering\Large Dziękuję za uwagę\end{frame}
+
+\end{document}
