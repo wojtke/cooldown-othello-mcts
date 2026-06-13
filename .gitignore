@@ -1,0 +1,19 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+mails.md
+logs/
+04-experiments/results/
+03-tuning/results/
+03-tuning/optuna/
+05-analysis/figures/
+05-analysis/tables/
+node_modules/
+web/dist/
+# LaTeX build artifacts (keep .tex/.pdf/.bib/.png)
+00-konspekt/*.aux
+00-konspekt/*.log
+00-konspekt/*.out
+00-konspekt/*.bbl
+00-konspekt/*.blg

@@ -1,0 +1,9 @@
+# Engine (01-game) and players (02-players) are pure Python — no deps.
+# These are needed only for tuning (03), analysis (05), and the web study server.
+optuna>=3.6
+scipy>=1.11
+pandas>=2.0
+matplotlib>=3.7
+# web study server (later phase):
+# fastapi>=0.110
+# uvicorn>=0.29
