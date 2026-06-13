@@ -21,6 +21,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import glob
 import json
 import math
 import os
@@ -379,24 +380,104 @@ def verdict_report(H: dict) -> str:
 
 
 def table_hypotheses(H: dict) -> str:
-    header = ["Hip.", "Wynik", "kluczowy efekt", "$p$", "holm-$p$"]
+    header = ["Hipoteza", "Wynik", "kluczowy efekt", "$p$", "holm-$p$"]
     holm = H.get("_holm", {})
     rows = []
     eff = {
-        "H1": lambda h: f"WR cooldown {h['cooldown_rate']:.2f}",
-        "H2": lambda h: f"przewaga {h['edge_pp']:.0f} p.p.",
-        "H3": lambda h: f"cool {h['cooldown_edge_pp']:.0f} / klasyk {h['classic_edge_pp']:.0f} p.p.",
-        "H4": lambda h: f"biały {h['classic']['white_rate']:.2f} / {h['cooldown']['white_rate']:.2f}",
+        "H1": lambda h: (f"UCT vs Naive-Buro: {h['cooldown_rate']:.2f} cooldown / "
+                         f"{h['classic_rate']:.2f} klasyk"),
+        "H2": lambda h: f"przewaga UCT-PB-cooldown nad UCT: {h['edge_pp']:.0f} p.p.",
+        "H3": lambda h: (f"Cooldown-Buro vs Naive-Buro: {h['cooldown_edge_pp']:.0f} p.p. cooldown / "
+                         f"{h['classic_edge_pp']:.0f} p.p. klasyk"),
+        "H4": lambda h: (f"biały (2.~gracz): {h['classic']['white_rate']:.2f} klasyk / "
+                         f"{h['cooldown']['white_rate']:.2f} cooldown"),
     }
     for key in ("H1", "H2", "H3", "H4"):
         if key not in H:
             continue
         h = H[key]
         p = h.get("p", float("nan"))
-        rows.append([key, "tak" if h.get("supported") else "nie", eff[key](h),
+        verdict = "potwierdzona" if h.get("supported") else "odrzucona"
+        rows.append([key, verdict, eff[key](h),
                      f"{p:.3f}", f"{holm.get(key, float('nan')):.3f}"])
-    return _tex_table(rows, header, "Weryfikacja hipotez (wielkość efektu + $p$).",
+    # wider table -> use full \textwidth via tabularx-free manual sizing
+    body = _tex_table(rows, header, "Weryfikacja hipotez (wielkość efektu, "
+                      "$p$-wartość testu i~$p$ po korekcie Holma--Bonferroniego).",
                       "tab:hypotheses")
+    return body
+
+
+def player_avg_winrate(tour, variant, player):
+    """Mean focal win rate of `player` over all its games in `variant`."""
+    sub = tour[(tour.variant == variant)
+               & ((tour.black == player) | (tour.white == player))]
+    scores = [r.result_black if r.black == player else 1.0 - r.result_black
+              for _, r in sub.iterrows()]
+    n = len(scores)
+    return (sum(scores) / n if n else 0.0), n
+
+
+def ranking_data(tour):
+    players = [p for p in PLAYER_ORDER if p in set(tour.black) | set(tour.white)]
+    data = {p: {v: player_avg_winrate(tour, v, p)[0] for v in ("classic", "cooldown")}
+            for p in players}
+    order = sorted(players, key=lambda p: -(data[p]["classic"] + data[p]["cooldown"]) / 2)
+    return order, data
+
+
+def table_ranking(tour) -> str:
+    order, data = ranking_data(tour)
+    header = ["Metoda", "śr. WR klasyk", "śr. WR cooldown", "średnia"]
+    rows = []
+    for p in order:
+        c, cd = data[p]["classic"], data[p]["cooldown"]
+        rows.append([PRETTY[p], f"{c:.3f}", f"{cd:.3f}", f"{(c + cd) / 2:.3f}"])
+    return _tex_table(rows, header,
+                      "Ranking: średni współczynnik wygranych każdej metody, uśredniony po "
+                      "wszystkich jej partiach turniejowych (po obu kolorach i~wszystkich "
+                      "przeciwnikach).", "tab:ranking")
+
+
+_HP_PRETTY = {"naive_buro": "Naive-Buro", "cooldown_buro": "Cooldown-Buro", "uct": "UCT",
+              "uct_pb_naive": "UCT-PB-naive", "uct_pb_cooldown": "UCT-PB-cooldown"}
+_HP_ORDER = ["naive_buro", "cooldown_buro", "uct", "uct_pb_naive", "uct_pb_cooldown"]
+
+
+def table_hyperparams() -> str:
+    tuning = os.path.join(HERE, "..", "03-tuning", "results")
+    items = [json.load(open(f)) for f in glob.glob(os.path.join(tuning, "tune_*.json"))]
+    items.sort(key=lambda d: (_HP_ORDER.index(d["algo"]), d["variant"]))
+    header = ["Metoda", "Wariant", "$c$", "$w_{\\mathrm{mob}}$", "$\\lambda_c$", "$w_H$",
+              "WR (strojenie)"]
+    rows = []
+    for d in items:
+        bp = d["best_params"]
+        f = lambda k: f"{bp[k]:.2f}" if k in bp else "--"
+        vlabel = "oba*" if d["algo"] in ("naive_buro", "cooldown_buro") else d["variant"]
+        rows.append([_HP_PRETTY[d["algo"]], vlabel, f("c"), f("w_mob"), f("lambda_c"),
+                     f("w_H"), f"{d['best_value']:.3f}"])
+    return _tex_table(rows, header,
+                      "Końcowe hiperparametry po strojeniu (Optuna TPE) oraz współczynnik "
+                      "wygranych wobec zestawu kontrolnego. *heurystyki strojono raz na "
+                      "Cooldown i~reużyto w~obu wariantach gry.", "tab:hyperparams")
+
+
+def fig_lifespan(tour):
+    import numpy as _np
+    fig, ax = plt.subplots(figsize=(7, 3.4))
+    hi = int(tour.lifespan_max.max())
+    bins = _np.arange(0.5, hi + 1.5, 1)
+    for variant, color in (("classic", "#4a78c2"), ("cooldown", "#d9534f")):
+        sub = tour[tour.variant == variant]
+        ax.hist(sub.lifespan_max.values, bins=bins, alpha=0.55, density=True,
+                label=variant, color=color)
+    ax.set_xlabel("max times any square is flipped in a game")
+    ax.set_ylabel("density")
+    ax.set_title("Piece 'lifespan' — most-flipped square per game")
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(os.path.join(FIGURES, "lifespan.png"), dpi=130)
+    plt.close(fig)
 
 
 # ---------------------------------------------------------------------------
@@ -427,6 +508,13 @@ def main():
         f.write(table_cooldown_metrics(tour))
     with open(os.path.join(TABLES, "hypotheses.tex"), "w") as f:
         f.write(table_hypotheses(H))
+    with open(os.path.join(TABLES, "ranking.tex"), "w") as f:
+        f.write(table_ranking(tour))
+    try:
+        with open(os.path.join(TABLES, "hyperparams.tex"), "w") as f:
+            f.write(table_hyperparams())
+    except Exception as e:
+        print(f"  (skipped hyperparams table: {e})")
     report = verdict_report(H)
     with open(os.path.join(TABLES, "hypotheses.txt"), "w") as f:
         f.write(report)
@@ -435,6 +523,14 @@ def main():
     fig_heatmaps(tour)
     fig_margin_boxplots(tour)
     fig_cooldown_metrics(tour)
+    fig_lifespan(tour)
+
+    # ranking numbers (handy for embedding a pgfplots bar chart)
+    order, data = ranking_data(tour)
+    print("\nRANKING (avg win rate over all tournament games):")
+    print(f"  {'method':16s} {'classic':>8s} {'cooldown':>8s}")
+    for p in order:
+        print(f"  {p:16s} {data[p]['classic']:8.3f} {data[p]['cooldown']:8.3f}")
 
     print("\n" + report)
     print(f"Tables  -> {TABLES}")

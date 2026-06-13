@@ -1,0 +1,410 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[polish]{babel}
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage[pdfusetitle,unicode]{hyperref}
+\usepackage{enumitem}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{parskip}                 % akapity blokowe: bez wcięcia, z odstępem
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage[numbers]{natbib}
+\bibliographystyle{plainnat}
+
+\newcommand{\coursename}{Metody Sztucznej Inteligencji 2}
+\newcommand{\projecttitle}{MCTS/UCT w~grze\\Cooldown Othello 6$\times$6}
+\newcommand{\authorone}{Wojciech Jasiński}
+\newcommand{\projectdate}{Warszawa, czerwiec 2026}
+
+\begin{document}
+\sloppy
+
+% ============================================================ STRONA TYTUŁOWA
+\begin{titlepage}
+    \centering
+    \includegraphics[width=0.8\textwidth]{politechnika.png}\par
+    \vspace{2.5cm}
+    {\Large \coursename\par}
+    \vspace{1.2cm}
+    {\Huge \bfseries \projecttitle \par}
+    \vspace{2cm}
+    {\Large Autor:\par}\vspace{0.4cm}{\large \authorone\par}
+    \vspace{1.2cm}
+    {\Large Prowadzący:\par}\vspace{0.4cm}{\large mgr inż.\ Bartłomiej Olechno\par}
+    \vfill
+    {\large \projectdate\par}
+\end{titlepage}
+\pagenumbering{roman}
+
+% ============================================================ STRESZCZENIE
+\begin{abstract}
+\noindent
+Projektujemy i~empirycznie analizujemy sztuczną inteligencję do dwuosobowej gry planszowej
+z~pełną informacją, opartą o~Monte Carlo Tree Search (MCTS) i~jego wariant UCT. Jako grę
+wybraliśmy Othello na planszy 6$\times$6 z~autorską \emph{regułą stygnięcia}: pionki postawione lub
+odwrócone w~poprzedniej turze są chwilowo chronione, co eliminuje natychmiastowe odbijanie
+(\emph{whipsaw}) i~wprowadza do gry zależność od historii. Porównujemy sześciu graczy
+(losowego, dwie heurystyki pozycyjne Buro i~trzy warianty MCTS) na klasycznym Othello 6$\times$6
+i~na wariancie z~regułą stygnięcia.
+
+Przeprowadziliśmy turniej round-robin (6000~partii przy budżecie 10\,000 symulacji na ruch),
+samogrę najsilniejszego gracza (4000~partii) oraz kaskadowe strojenie hiperparametrów (Optuna~TPE).
+Wyniki: (H1) UCT wyraźnie pokonuje heurystyki, a~jego przewaga jest większa pod regułą stygnięcia
+(88\% vs 77\% wygranych z~Naive-Buro) -- \emph{potwierdzona}; (H2) progressive bias daje tylko
+niewielki zysk i~tylko z~heurystyką świadomą reguły -- z~naiwną wręcz szkodzi -- \emph{odrzucona};
+(H3) heurystyka świadoma reguły jest lepsza w~\emph{obu} wariantach, nie tylko pod regułą --
+\emph{odrzucona}; (H4) strukturalna przewaga drugiego gracza (58\%~w~klasyku) zanika pod regułą
+stygnięcia (49\%) -- \emph{potwierdzona}. Najsilniejszym graczem jest UCT-PB-cooldown, ale główny
+zysk pochodzi z~samego MCTS, nie z~progressive bias.
+\end{abstract}
+\newpage
+\tableofcontents
+\newpage
+\pagenumbering{arabic}
+
+% ============================================================ 1. WPROWADZENIE
+\section{Wprowadzenie}
+Celem projektu jest zaprojektowanie i~empiryczna analiza AI do dwuosobowej gry z~pełną informacją,
+opartej o~MCTS/UCT~\cite{coulom2007efficient,browne2012survey,kocsis2006bandit}. Badamy w~jakim
+stopniu klasyczny MCTS oraz ulepszenie \emph{progressive bias}~\cite{chaslot2008progressive}
+(kierowanie poszukiwań heurystyką dziedzinową) radzą sobie, gdy zmienimy zasady gry w~sposób
+wprowadzający zależność od historii.
+
+Jako grę wybraliśmy Othello -- klasyczną grę o~prostych zasadach i~bogatej literaturze heurystyk
+pozycyjnych~\cite{buro1997evaluation,buro2003evolution} -- na zmniejszonej planszy 6$\times$6, do
+której wprowadzamy autorską \emph{regułę stygnięcia} (sekcja~\ref{sec:gra}). Reguła zmienia
+wartość ruchów względem klasyki i~pozwala zadać pytanie: czy klasyczne heurystyki i~MCTS pozostają
+skuteczne w~zmienionych warunkach, oraz jak modyfikacja wpływa na balans gry.
+
+Raport jest dokumentem samodzielnym: rozdziały~\ref{sec:gra}--\ref{sec:hipotezy} opisują grę,
+algorytmy, graczy i~hipotezy, a~rozdziały~\ref{sec:metodyka}--\ref{sec:wnioski} -- przebieg
+i~wyniki rzeczywiście przeprowadzonych eksperymentów.
+
+% ============================================================ 2. GRA
+\section{Gra i~reguła stygnięcia}\label{sec:gra}
+
+\subsection{Othello -- zasady klasyczne}
+Othello to deterministyczna gra dwuosobowa z~pełną informacją; gracze (czarny i~biały, czarny
+rusza pierwszy) stawiają pionki na planszy, w~centrum której leżą początkowo cztery pionki
+w~układzie krzyżowym. Ruch polega na położeniu pionka swojego koloru tak, by w~co najmniej jednym
+kierunku domknął on linię pionków przeciwnika ograniczoną własnym pionkiem; wszystkie domknięte
+pionki przeciwnika zostają odwrócone na własny kolor. Gracz bez legalnego ruchu pasuje; dwa pasy
+pod rząd kończą grę. Wygrywa gracz z~większą liczbą pionków. Gramy na planszy \textbf{6$\times$6}
+(zamiast 8$\times$8), co redukuje przestrzeń stanów o~kilkanaście rzędów wielkości i~umożliwia
+statystycznie wiarygodne porównania wielu wariantów MCTS, zachowując elementy strategii Othello.
+
+\subsection{Reguła stygnięcia (Cooldown)}\label{sec:cooldown-rule}
+Stan gry to para $(B, C)$, gdzie $B$ to konfiguracja planszy, a~$C$ to zbiór pól ze znacznikiem
+\emph{stygnięcia} -- pionków postawionych lub odwróconych w~bezpośrednio poprzedniej turze. Pionek
+ze znacznikiem jest \emph{przezroczysty}: nie kończy linii domykania, nie czyni jej nielegalną
+i~nie może zostać odwrócony w~tej turze.
+
+\textbf{Legalność.} Stawiając pionek na pustym polu $p$, dla każdego z~8~kierunków idziemy od $p$:
+puste pole lub krawędź odrzuca linię; pionek własnego koloru zamyka linię, która jest akceptowana
+\emph{wtedy i~tylko wtedy}, gdy po drodze wystąpił co najmniej jeden pionek przeciwnika \emph{bez}
+znacznika stygnięcia. Ruch jest legalny, jeśli istnieje co najmniej jedna akceptowana linia.
+
+\textbf{Egzekucja.} Po legalnym ruchu: (1)~zdejmujemy wszystkie znaczniki ($C\!\leftarrow\!\emptyset$),
+(2)~stawiamy pionek na $p$, (3)~w~akceptowanych liniach odwracamy tylko pionki przeciwnika
+\emph{bez} znacznika (ostudzone zostają w~swoim kolorze), (4)~nowy zbiór $C$ to pole $p$ wraz
+z~wszystkimi właśnie odwróconymi pionkami. Pas wykonuje wyłącznie krok~(1). Przypadki graniczne:
+świeżo postawiony pionek też trafia do $C$ (jest chroniony przez jedną turę); ostudzone pionki
+w~linii mieszanej przepuszczamy przezroczyście; pas zeruje $C$ (znaczniki się nie kumulują).
+
+\textbf{Po co ta reguła.} W~klasycznym Othello \emph{whipsaw} -- naprzemienne odwracanie tych
+samych pionków -- jest częstą taktyką. Reguła stygnięcia eliminuje natychmiastowe odwzajemnienie
+i~wprowadza \emph{zależność od historii}: legalność ruchu zależy nie tylko od planszy, ale i~od
+pionków odwróconych w~poprzedniej turze. Skutki istotne dla badania: (i)~MCTS musi reprezentować
+stan jako parę \texttt{(plansza, ostudzone)}, więc dwie identyczne fizycznie pozycje nie są
+tożsame, co osłabia tablice transpozycji~\cite{childs2008transpositions}; (ii)~klasyczne wagi Buro,
+skalibrowane dla swobodnego bicia, nie uwzględniają chwilowej ochrony odwracanych pionków.
+
+\subsection{Złożoność -- weryfikacja empiryczna}\label{sec:complexity}
+Przed głównymi eksperymentami zmierzyliśmy długość gry i~rozgałęzienie w~1000~partiach losowych na
+wariant. Reguła stygnięcia \textbf{obniża średnie rozgałęzienie} z~5,3 (klasyk) do~4,5 (cooldown),
+bo część bić jest zablokowana, ale \textbf{nie skraca gry}: średnia długość wynosi $\approx$34
+półruchy w~obu wariantach, bo plansza i~tak się zapełnia. (Konspekt szacował długość Cooldown na
+$\sim$28; pomiar pokazał wartość wyższą -- por.\ sekcja~\ref{sec:odstepstwa}.) Iloczyn
+rozgałęzienia i~długości mieści się w~zakładanej skali złożoności dla rzetelnych porównań MCTS.
+
+% ============================================================ 3. ALGORYTMY
+\section{Algorytmy}\label{sec:algorytmy}
+
+\subsection{MCTS i~UCT}
+Monte Carlo Tree Search buduje drzewo gry z~powtarzanych iteracji, z~których każda ma cztery fazy:
+\emph{selekcja} (zejście od korzenia po drzewie wg polityki balansującej eksplorację
+i~eksploatację), \emph{ekspansja} (dodanie nowego węzła), \emph{symulacja} (losowe rozegranie do
+końca) i~\emph{backpropagacja} (uaktualnienie statystyk węzłów na ścieżce wynikiem symulacji). UCT
+\cite{kocsis2006bandit} w~selekcji wybiera ruch maksymalizujący górną granicę ufności
+UCB1~\cite{auer2002finite}:
+\[ \mathrm{UCB1}(s,a) = \overline{Q}(s,a) + c\,\sqrt{\tfrac{\ln N(s)}{N(s,a)}}, \]
+gdzie $\overline{Q}$ to średnia wygrana, $N$ -- liczniki odwiedzin, $c$ -- stała eksploracji,
+a~budżet $B$ -- liczba iteracji na ruch. Węzeł przechowuje pełny stan $(B,C)$; z~powodu zależności
+od historii nie stosujemy tablic transpozycji.
+
+\subsection{Progressive bias}\label{sec:pb}
+Progressive bias~\cite{chaslot2008progressive} dodaje do UCB1 człon $w_H\,H(s,a)/(N(s,a)+1)$,
+gdzie $H$ to heurystyka dziedzinowa, a~$w_H$ -- jej waga. Przy małej liczbie odwiedzin heurystyka
+silnie kieruje wyborem; wraz ze wzrostem $N$ jej wpływ maleje, a~dominują dane z~symulacji.
+
+\subsection{Heurystyki Buro}\label{sec:buro}
+Klasyczna heurystyka pozycyjna Buro~\cite{buro1997evaluation} łączy dwa składniki. \emph{Wagi
+pozycyjne}: każdemu polu przypisana jest waga -- rogi cenne ($+100$, są stabilne), pola X
+(skośnie przy rogu) silnie ujemne ($-50$), pola C (przy rogu) ujemne ($-20$), brzeg dodatni
+($+10$), wnętrze nieznacznie ujemne; wartość pozycji to suma wag pól gracza minus przeciwnika.
+\emph{Mobilność}: różnica liczby legalnych ruchów obu graczy, z~wagą $w_{\mathrm{mob}}$.
+Heurystyczny gracz wybiera ruch maksymalizujący ważoną sumę po jednym ruchu w~przód (negamax
+głębokości~1).
+
+\textbf{Cooldown-Buro} rozszerza powyższą ocenę o~człon (waga $\lambda_c$) świadomy reguły
+stygnięcia: \emph{kara} za każdy odwracany pionek, który po wygaśnięciu cooldown przeciwnik łatwo
+odbije, oraz \emph{bonus} za pionek osłonięty z~obu stron własnymi pionkami (trwale stabilny).
+Naive-Buro używa tylko klasycznej części; Cooldown-Buro -- pełnej rozszerzonej oceny.
+
+% ============================================================ 4. GRACZE
+\section{Gracze}\label{sec:players}
+Porównujemy sześciu graczy: \textbf{Random} (losowy legalny ruch -- punkt odniesienia);
+\textbf{Naive-Buro} i~\textbf{Cooldown-Buro} (negamax 1-warstwowy, odpowiednio z~klasyczną
+i~rozszerzoną oceną); \textbf{UCT} (bazowy MCTS); \textbf{UCT-PB-naive} i~\textbf{UCT-PB-cooldown}
+(UCT z~progressive bias, kierowany odpowiednio naiwną i~świadomą reguły heurystyką). Random,
+Naive-Buro i~UCT to punkty kontrolne; UCT-PB-cooldown to typowany najsilniejszy gracz.
+
+% ============================================================ 5. HIPOTEZY
+\section{Hipotezy badawcze}\label{sec:hipotezy}
+\begin{description}[leftmargin=2.4em,itemsep=3pt]
+  \item[H1] UCT pokonuje Naive-Buro w~obu wariantach ($\geq$60\% na Cooldown), a~jego przewaga
+    jest istotnie większa na Cooldown niż na klasyku.
+  \item[H2] UCT+progressive-bias z~Cooldown-Buro pokonuje bazowy UCT na Cooldown o~$\geq$10~p.p.,
+    wyraźniej niż wariant z~naiwną heurystyką.
+  \item[H3] Cooldown-Buro pokonuje Naive-Buro na Cooldown ($\geq$10~p.p.), ale na klasyku obie są
+    praktycznie równoważne ($<$5~p.p.).
+  \item[H4] Strukturalna przewaga drugiego gracza w~klasycznym 6$\times$6 zanika pod regułą
+    stygnięcia (badana w~samogrze najsilniejszego wariantu).
+\end{description}
+
+% ============================================================ 6. METODYKA
+\section{Metodyka eksperymentu}\label{sec:metodyka}
+
+\textbf{Turniej (H1--H3).} Dla obu wariantów gry rozegraliśmy turniej round-robin między sześcioma
+graczami: każda z~15~par zagrała 200~partii z~zamianą kolorów (po 100 na kolor), przy budżecie
+$B=10\,000$ symulacji na ruch. Daje to $15\times200\times2 = \mathbf{6000}$ partii.
+
+\textbf{Samogra (H4).} Najsilniejszy wariant (UCT-PB-cooldown) zagrał sam ze sobą po 2000~partii na
+wariant gry (łącznie 4000), z~odrębnymi ziarnami dla obu kolorów, by uniknąć identycznych
+rozegrań. Raportujemy współczynnik wygranych drugiego gracza (białego).
+
+\textbf{Strojenie hiperparametrów.} Hiperparametry dobrano biblioteką Optuna (sampler
+TPE)~\cite{akiba2019optuna}, kaskadowo: każdy ustrojony gracz wchodził do zestawu kontrolnego
+graczy strojonych po nim. Funkcją celu był średni współczynnik wygranych wobec trzech przeciwników
+kontrolnych; budżet strojenia $B_{\mathrm{tune}}=2000$, 30~prób na algorytm, 60~partii na próbę.
+Heurystyki strojono raz (na Cooldown) i~reużyto w~obu wariantach; warianty MCTS strojono osobno na
+każdym wariancie gry. Końcowe wartości zebrano w~tabeli~\ref{tab:hyperparams}.
+
+\textbf{Maszyna i~czas.} Eksperymenty uruchomiono na wynajętej maszynie CPU (128~rdzeni, 1~TiB RAM,
+Python~3.12); obliczenia zrównoleglono na poziomie partii (\texttt{multiprocessing}). Strojenie
+zajęło ok.\ 48~min, a~turniej i~samogra przy $B=10\,000$ -- kilkadziesiąt minut; pojedyncza partia
+dwóch graczy MCTS przy $B=10\,000$ trwa ok.\ 70~s. GPU nie jest tu przydatne (przeszukiwanie drzewa
+jest sekwencyjne), więc skalujemy liczbą rdzeni.
+
+\textbf{Analiza statystyczna.} Współczynniki wygranych raportujemy z~95\% przedziałem ufności
+Wilsona; istotność: test dwumianowy (pojedyncze pary) i~test McNemara (porównania sparowane po
+ziarnach), z~korektą Holma--Bonferroniego dla rodziny hipotez. Remis liczymy jako pół wygranej.
+
+\textbf{Implementacja.} Silnik gry i~warianty MCTS napisano od zera w~Pythonie
+(NumPy/SciPy/Pandas/Matplotlib, Optuna); poprawność reguł potwierdzono testami jednostkowymi oraz
+testem różnicowym (zgodność generatora ruchów z~niezależną implementacją na 4144~pozycjach). Każda
+partia jest odtwarzalna z~ziaren; kod jest publiczny, a~wyniki zapisywane przyrostowo (wznawialnie).
+
+% ============================================================ 7. WYNIKI
+\section{Wyniki}\label{sec:wyniki}
+
+\subsection{Ranking i~współczynniki wygranych}
+Na podstawie 6000~partii turniejowych (po 3000 na wariant) tabela~\ref{tab:ranking}
+i~rysunek~\ref{fig:ranking} podają średni współczynnik wygranych każdej metody, uśredniony po
+wszystkich jej partiach. W~obu wariantach MCTS zdecydowanie przewyższa heurystyki. Najsilniejszy
+jest \textbf{UCT-PB-cooldown}, jako jedyny utrzymujący wysoki wynik w~obu wariantach
+(0,84/0,81). Ciekawe są dwa zjawiska: UCT-PB-naive jest mocny na klasyku (0,86), ale
+\emph{załamuje się} pod regułą stygnięcia (0,64) -- naiwna heurystyka myli poszukiwanie; bazowy UCT
+przeciwnie -- jest \emph{lepszy} pod regułą (0,79) niż na klasyku (0,63).
+
+\input{../05-analysis/tables/ranking.tex}
+
+\begin{figure}[h]\centering
+\begin{tikzpicture}
+\begin{axis}[ybar, bar width=9pt, width=\textwidth, height=6cm,
+  symbolic x coords={UCT-PB-cooldown,UCT-PB-naive,UCT,Cooldown-Buro,Naive-Buro,Random},
+  xtick=data, x tick label style={rotate=18,anchor=east,font=\small},
+  ymin=0, ymax=1, ylabel={śr.\ współczynnik wygranych}, legend pos=north east,
+  enlarge x limits=0.10]
+\addplot[fill=blue!55] coordinates {(UCT-PB-cooldown,0.844)(UCT-PB-naive,0.859)(UCT,0.632)(Cooldown-Buro,0.346)(Naive-Buro,0.279)(Random,0.040)};
+\addplot[fill=red!60]  coordinates {(UCT-PB-cooldown,0.814)(UCT-PB-naive,0.644)(UCT,0.788)(Cooldown-Buro,0.424)(Naive-Buro,0.278)(Random,0.052)};
+\legend{klasyk,cooldown}
+\end{axis}
+\end{tikzpicture}
+\caption{Średni współczynnik wygranych metod na obu wariantach gry (te same dane co tab.~\ref{tab:ranking}).}
+\label{fig:ranking}
+\end{figure}
+
+Pełną strukturę par pokazują heatmapy współczynników wygranych (rys.~\ref{fig:heatmaps}): wartość
+to odsetek wygranych gracza z~wiersza przeciw graczowi z~kolumny.
+
+\begin{figure}[h]\centering
+  \begin{subfigure}{0.49\textwidth}\centering
+    \includegraphics[width=\linewidth]{../05-analysis/figures/heatmap_winrate_classic.png}
+    \caption{Klasyczne 6$\times$6}\end{subfigure}\hfill
+  \begin{subfigure}{0.49\textwidth}\centering
+    \includegraphics[width=\linewidth]{../05-analysis/figures/heatmap_winrate_cooldown.png}
+    \caption{Cooldown 6$\times$6}\end{subfigure}
+  \caption{Współczynnik wygranych gracza w~wierszu przeciw graczowi w~kolumnie.}
+  \label{fig:heatmaps}
+\end{figure}
+
+\subsection{Różnice pionków na końcu partii}
+Rysunek~\ref{fig:margin} pokazuje rozkłady różnicy pionków na końcu partii (z~perspektywy danej
+metody). Silniejsze metody nie tylko wygrywają częściej, ale i~wyraźniejszą przewagą pionków;
+heurystyki i~gracz losowy mają mediany ujemne lub bliskie zera.
+
+\begin{figure}[h]\centering
+  \includegraphics[width=0.96\textwidth]{../05-analysis/figures/margin_boxplots.png}
+  \caption{Różnica pionków na końcu partii (metoda $-$ przeciwnik), wg metody i~wariantu.}
+  \label{fig:margin}
+\end{figure}
+
+\subsection{Metryki specyficzne dla reguły stygnięcia}
+Aby zmierzyć, jak często reguła w~ogóle „działa”, liczymy dwie wielkości (rys.~\ref{fig:cdmetrics}).
+\emph{Whipsaw rate} (partie klasyczne) to odsetek faktycznie zagranych ruchów, które byłyby
+\emph{nielegalne} pod regułą stygnięcia -- mierzy, jak często w~normalnej grze padają natychmiastowe
+odbicia, które reguła by zablokowała. \emph{Cooldown-blocked rate} (partie Cooldown) to odsetek
+decyzji, w~których co najmniej jeden ruch legalny w~klasyce jest zablokowany przez regułę. Obie
+metryki mierzą \emph{częstość aktywacji} reguły, a~nie jakość zablokowanego ruchu -- nie twierdzimy,
+że zablokowany ruch jest „dobry”; pokazujemy jedynie, że reguła realnie ingeruje w~grę (mediana
+kilkunastu procent decyzji).
+
+\begin{figure}[h]\centering
+  \includegraphics[width=0.92\textwidth]{../05-analysis/figures/cooldown_metrics.png}
+  \caption{Częstość aktywacji reguły: whipsaw rate (klasyk) i~cooldown-blocked rate (Cooldown).}
+  \label{fig:cdmetrics}
+\end{figure}
+
+Bardziej bezpośrednim skutkiem reguły jest „długość życia” pionka -- ile razy dane pole zostaje
+odwrócone w~partii (rys.~\ref{fig:lifespan}). Pod regułą stygnięcia rozkład ma \emph{krótszy ogon}:
+pionki są rzadziej wielokrotnie odbijane, bo świeże bicia są chwilowo chronione -- co jest istotą
+modyfikacji.
+
+\begin{figure}[h]\centering
+  \includegraphics[width=0.80\textwidth]{../05-analysis/figures/lifespan.png}
+  \caption{Rozkład maksymalnej liczby odwróceń pojedynczego pola w~partii.}
+  \label{fig:lifespan}
+\end{figure}
+
+\subsection{Strojenie hiperparametrów}\label{sec:tuning-results}
+Końcowe hiperparametry zebrano w~tabeli~\ref{tab:hyperparams}. Najciekawsza obserwacja: stała
+eksploracji $c$ dla UCT wypada po przeciwnych stronach zakresu dla obu wariantów (2,23~klasyk vs
+0,52~cooldown). Rysunek~\ref{fig:tuning} wyjaśnia dlaczego -- zależność funkcji celu od~$c$ jest
+prawie płaska: silny UCT i~tak pokonuje (słaby dla niego) zestaw kontrolny, więc współczynnik
+wygranych nasyca się i~$c$ jest słabo ograniczone (na Cooldown widać dodatkowo łagodną preferencję
+małego~$c$). Dla wariantów z~progressive bias zależność jest wyraźniejsza -- niski $c$ idzie
+w~parze z~wysokim $w_H$ (silne kierowanie heurystyką zastępuje eksplorację UCB), co najlepiej widać
+dla UCT-PB-cooldown na Cooldown ($c{=}0{,}54$, $w_H{=}8{,}7$).
+
+\input{../05-analysis/tables/hyperparams.tex}
+
+\begin{figure}[h]\centering
+  \includegraphics[width=0.9\textwidth]{../05-analysis/figures/tuning_uct_c_sensitivity.png}
+  \caption{Zależność współczynnika wygranych UCT od stałej eksploracji $c$ (wykres PDP/slice).}
+  \label{fig:tuning}
+\end{figure}
+
+\begin{figure}[h]\centering
+  \begin{subfigure}{0.49\textwidth}\centering
+    \includegraphics[width=\linewidth]{../05-analysis/figures/tuning_slice_uct_pb_cooldown_cooldown.png}
+    \caption{UCT-PB-cooldown @ Cooldown}\end{subfigure}\hfill
+  \begin{subfigure}{0.49\textwidth}\centering
+    \includegraphics[width=\linewidth]{../05-analysis/figures/tuning_slice_cooldown_buro_cooldown.png}
+    \caption{Cooldown-Buro @ Cooldown}\end{subfigure}
+  \caption{Zależność celu od~hiperparametrów dla wybranych metod (PDP/slice). Dla PB-cooldown widać
+    realną zależność od $c$ i~$w_H$; dla heurystyki Buro funkcja jest płaska względem
+    $w_{\mathrm{mob}}$ (parametr słabo ograniczony).}
+  \label{fig:tuning2}
+\end{figure}
+
+% ============================================================ 8. WERYFIKACJA HIPOTEZ
+\section{Weryfikacja hipotez}\label{sec:weryfikacja}
+\input{../05-analysis/tables/hypotheses.tex}
+
+\textbf{H1 -- potwierdzona.} UCT pokonuje Naive-Buro w~88\% partii na Cooldown (95\% CI:
+0,82--0,92; $\geq$60\%) i~w~77\% na klasyku; przewaga jest o~ok.\ 11~p.p.\ większa pod regułą
+stygnięcia ($p\!\approx\!10^{-29}$). Zgodnie z~intuicją: reguła komplikuje ocenę pozycyjną, a~MCTS
+lepiej radzi sobie z~zależnością od historii.
+
+\textbf{H2 -- odrzucona.} UCT-PB-cooldown pokonuje bazowy UCT na Cooldown jedynie o~ok.\ 4~p.p.\
+(próg 10~p.p.\ nieosiągnięty, różnica nieistotna), a~UCT-PB-naive wręcz \emph{przegrywa} z~bazowym
+UCT. Progressive bias pomaga więc tylko z~heurystyką świadomą reguły i~to nieznacznie, a~z~naiwną
+szkodzi.
+
+\textbf{H3 -- odrzucona.} Na Cooldown Cooldown-Buro pokonuje Naive-Buro w~100\% (przewaga
+$\gg$10~p.p.), ale na klasyku również wygrywa (o~ok.\ 26~p.p.), zamiast być równoważna. Heurystyka
+świadoma reguły jest po prostu lepsza w~obu wariantach -- jej człon „trwałości bicia” jest użyteczny
+także w~klasycznym Othello -- więc nie udało się wyizolować efektu samej reguły.
+
+\textbf{H4 -- potwierdzona.} W~samogrze (po 2000~partii na wariant) drugi gracz wygrywa 58,4\%
+partii na klasyku (95\% CI: 0,562--0,605; istotnie $>$50\%), ale tylko 49,1\% pod regułą stygnięcia
+(95\% CI: 0,469--0,513; nieodróżnialne od~50\%). Strukturalna przewaga drugiego gracza istnieje
+w~klasyku i~\emph{zanika} pod regułą -- whipsaw jest taktyką reaktywną, więc jego eliminacja odbiera
+przewagę graczowi odpowiadającemu.
+
+% ============================================================ 9. WNIOSKI
+\section{Podsumowanie i~wnioski}\label{sec:wnioski}
+Spośród czterech hipotez potwierdziły się dwie (H1, H4), a~dwie odrzuciliśmy (H2, H3); odrzucenia
+są pouczające, nie negatywne. Najważniejsze wnioski:
+\begin{itemize}[leftmargin=1.4em,itemsep=2pt]
+  \item \textbf{Zysk pochodzi z~MCTS, nie z~progressive bias.} UCT-PB-cooldown jest najsilniejszy,
+    ale jego przewaga nad bazowym UCT jest niewielka; dodatkowo naiwna heurystyka w~progressive
+    bias \emph{szkodzi} pod regułą (UCT-PB-naive: 0,86 klasyk $\to$ 0,64 cooldown).
+  \item \textbf{Świadomość reguły ma znaczenie dla heurystyki.} Cooldown-Buro miażdży Naive-Buro
+    pod regułą (100\%); naiwna ocena prowadzi do bić, które reguła karze (zapaść Naive-Buro).
+  \item \textbf{Heurystyka „trwałości bicia” jest ogólnie wartościowa} -- pomaga także w~klasyku,
+    a~nie tylko pod regułą (stąd odrzucenie H3 jako hipotezy o~izolacji efektu).
+  \item \textbf{Reguła zmienia balans gry} -- znika strukturalna przewaga drugiego gracza
+    (H4), więc Cooldown Othello jest wariantem bardziej zrównoważonym, a~jednocześnie realnie
+    ingeruje w~grę (krótszy ogon „długości życia” pionków, kilkanaście procent zablokowanych
+    decyzji).
+  \item \textbf{MCTS lubi tę regułę} -- bazowy UCT radzi sobie \emph{lepiej} pod regułą niż na
+    klasyku względem pola, co wzmacnia obraz z~H1.
+\end{itemize}
+
+% ============================================================ 10. ODSTĘPSTWA
+\section{Ograniczenia i~odstępstwa od~konspektu}\label{sec:odstepstwa}
+\begin{itemize}[leftmargin=1.4em,itemsep=2pt]
+  \item \textbf{Długość gry.} Konspekt szacował średnią długość Cooldown na $\sim$28~ruchów; pomiar
+    (1000~partii losowych) dał $\approx$34 -- plansza zapełnia się niezależnie od reguły. To
+    korekta szacunku, nie zmiana planu.
+  \item \textbf{Strojenie $c$ słabo ograniczone.} Dla silnych graczy funkcja celu strojenia nasyca
+    się (zestawy kontrolne są dla nich za słabe), więc część hiperparametrów MCTS jest słabo
+    określona (rys.~\ref{fig:tuning}). Wzmocnienie zestawów kontrolnych to naturalny kierunek
+    poprawy.
+  \item \textbf{Eksperyment człowiek--komputer} przewidziany w~konspekcie \emph{nie został}
+    przeprowadzony w~tej iteracji; przygotowano natomiast działający interfejs webowy gry, gotowy do
+    takiego badania.
+\end{itemize}
+
+% ============================================================ 11. LLM
+\section{Wykorzystanie dużych modeli językowych}
+Projekt zrealizowano z~użyciem asystenta opartego o~duży model językowy (Claude, Anthropic) w~roli
+pary programistycznej: implementacja silnika gry i~wariantów MCTS, skryptów strojenia i~analizy,
+orkiestracja eksperymentów na maszynie zdalnej oraz redakcja raportu. Wszystkie decyzje projektowe,
+weryfikacja poprawności (testy jednostkowe i~różnicowe) oraz interpretacja wyników były nadzorowane
+przez autora.
+
+% ============================================================ BIBLIOGRAFIA
+\bibliography{references}
+
+\end{document}

@@ -1,0 +1,20 @@
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrrrrrr}
+\toprule
+Metoda & Wariant & $c$ & $w_{\mathrm{mob}}$ & $\lambda_c$ & $w_H$ & WR (strojenie) \\
+\midrule
+Naive-Buro & oba* & -- & 4.75 & -- & -- & 0.583 \\
+Cooldown-Buro & oba* & -- & 2.49 & 0.52 & -- & 0.708 \\
+UCT & classic & 2.23 & -- & -- & -- & 0.958 \\
+UCT & cooldown & 0.52 & -- & -- & -- & 0.950 \\
+UCT-PB-naive & classic & 0.75 & -- & -- & 2.42 & 0.933 \\
+UCT-PB-naive & cooldown & 1.11 & -- & -- & 1.12 & 0.842 \\
+UCT-PB-cooldown & classic & 0.72 & -- & -- & 5.02 & 0.817 \\
+UCT-PB-cooldown & cooldown & 0.54 & -- & -- & 8.71 & 0.717 \\
+\bottomrule
+\end{tabular}
+\caption{Końcowe hiperparametry po strojeniu (Optuna TPE) oraz współczynnik wygranych wobec zestawu kontrolnego. *heurystyki strojono raz na Cooldown i~reużyto w~obu wariantach gry.}
+\label{tab:hyperparams}
+\end{table}
