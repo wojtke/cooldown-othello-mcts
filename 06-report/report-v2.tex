@@ -265,7 +265,7 @@ na~klasyku to w~dużej mierze artefakt strojenia (źle dobrane $c$ -- por.\ sekc
 
 \begin{figure}[H]\centering
 \begin{minipage}[c]{0.57\textwidth}\centering
-\input{figs/fig_ranking_bare.tex}
+\resizebox{\linewidth}{!}{\input{figs/fig_ranking_bare.tex}}
 \captionof{figure}{Średni współczynnik wygranych metod na obu wariantach gry (te same dane co
 tab.~\ref{tab:ranking}).}\label{fig:ranking}
 \end{minipage}\hfill
@@ -305,6 +305,18 @@ pionki są rzadziej wielokrotnie odbijane, bo świeże bicia są chwilowo chroni
 modyfikacji.
 
 \input{figs/fig_lifespan.tex}
+
+Skutkiem ubocznym usuwania bić jest częstsze \emph{zablokowanie strony} -- sytuacja, w~której gracz
+nie ma żadnego legalnego ruchu i~musi spasować. Każda partia kończy się dwoma pasami (zapełniona
+plansza), więc miarodajne są pasy \emph{w~fazie środkowej} (rys.~\ref{fig:forcedpass}). Reguła
+stygnięcia podnosi odsetek partii z~co~najmniej jednym takim zablokowaniem z~\textbf{57\% do~70\%}
+(turniej, 3000~partii na wariant), a~średnią liczbę takich pasów z~\textbf{1,07 do~1,57}. Efekt
+potwierdza się w~self-play tym samym, najsilniejszym silnikiem (\mbox{48\%~$\to$~65\%}), więc wynika
+z~reguły, a~nie z~doboru graczy; ogólny odsetek pasów na półruch rośnie z~8,8\% do~10,1\%. Jest to
+spójne z~niższym współczynnikiem rozgałęzienia z~§\ref{sec:complexity} -- mniej legalnych opcji
+częściej zamraża stronę.
+
+\input{figs/fig_forcedpass.tex}
 
 \subsection{Strojenie hiperparametrów}\label{sec:tuning-results}
 Końcowe hiperparametry zebrano w~tabeli~\ref{tab:hyperparams}. Najciekawsza obserwacja: stała
@@ -382,7 +394,8 @@ są pouczające, nie negatywne. Najważniejsze wnioski:
   \item \textbf{Reguła zmienia balans gry} -- znika strukturalna przewaga drugiego gracza
     (H4), więc Cooldown Othello jest wariantem bardziej zrównoważonym, a~jednocześnie realnie
     ingeruje w~grę (krótszy ogon „długości życia” pionków, blokada jakiejś opcji w~ponad połowie
-    decyzji).
+    decyzji oraz częstsze zablokowanie strony bez ruchu: 57\%~$\to$~70\% partii,
+    rys.~\ref{fig:forcedpass}).
   \item \textbf{Strojenie kaskadowe nie poprawiło silnych graczy.} Powtórzenie turnieju
     z~parametrami domyślnymi zmienia wyniki średnio o~ok.\ 6~p.p.\ w~niejednorodnych kierunkach,
     a~bazowemu UCT na~klasyku strojenie wręcz \emph{zaszkodziło} (źle dobrane $c$). Przewaga

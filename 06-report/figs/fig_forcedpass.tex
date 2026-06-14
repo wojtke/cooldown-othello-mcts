@@ -1,0 +1,18 @@
+\begin{figure}[H]\centering
+\begin{tikzpicture}
+\begin{axis}[width=0.80\textwidth, height=4.8cm, ymajorgrids,
+  xlabel={wymuszone pasy w~partii (poza końcowymi dwoma)}, ylabel={liczba partii},
+  xlabel style={font=\small}, ylabel style={font=\small},
+  xtick={0,1,2,3,4,5,6,7,8}, xmin=-0.5, xmax=8.5,
+  legend pos=north east, legend style={font=\small}]
+\addplot+[hist={bins=9,data min=-0.5,data max=8.5}, fill=blue!40, draw=blue!60!black,
+  opacity=0.6, mark=none] table[y=v]{figs/forcedpass_classic.dat};
+\addplot+[hist={bins=9,data min=-0.5,data max=8.5}, fill=red!45, draw=red!60!black,
+  opacity=0.6, mark=none] table[y=v]{figs/forcedpass_cooldown.dat};
+\legend{klasyk,cooldown}
+\end{axis}
+\end{tikzpicture}
+\caption{Rozkład liczby wymuszonych pasów na partię (strona bez legalnego ruchu, poza końcowymi
+dwoma) w~obu wariantach turnieju.}
+\label{fig:forcedpass}
+\end{figure}

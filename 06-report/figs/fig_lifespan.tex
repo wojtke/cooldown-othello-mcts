@@ -1,23 +1,18 @@
-\pgfplotsset{lifeaxis/.style={width=0.82\textwidth, height=4.0cm, ymajorgrids,
-  xmin=0, xmax=12, ylabel={liczba partii}, ylabel style={font=\small},
-  xtick={0,2,4,6,8,10,12}, tick label style={font=\small}}}
 \begin{figure}[H]\centering
 \begin{tikzpicture}
-\begin{axis}[lifeaxis, title={\small klasyk}, xticklabels={}]
-\addplot+[hist={bins=11,data min=0.5,data max=11.5}, fill=blue!45, draw=blue!60!black,
-  mark=none] table[y=v]{figs/lifespan_classic.dat};
+\begin{axis}[width=0.80\textwidth, height=4.8cm, ymajorgrids,
+  xlabel={maksymalna liczba odwróceń pojedynczego pola w~partii}, ylabel={liczba partii},
+  xlabel style={font=\small}, ylabel style={font=\small},
+  xtick={0,2,4,6,8,10,12}, xmin=0, xmax=12,
+  legend pos=north east, legend style={font=\small}]
+\addplot+[hist={bins=11,data min=0.5,data max=11.5}, fill=blue!40, draw=blue!60!black,
+  opacity=0.6, mark=none] table[y=v]{figs/lifespan_classic.dat};
+\addplot+[hist={bins=11,data min=0.5,data max=11.5}, fill=red!45, draw=red!60!black,
+  opacity=0.6, mark=none] table[y=v]{figs/lifespan_cooldown.dat};
+\legend{klasyk,cooldown}
 \end{axis}
 \end{tikzpicture}
-
-\begin{tikzpicture}
-\begin{axis}[lifeaxis, title={\small cooldown},
-  xlabel={maksymalna liczba odwróceń pojedynczego pola w~partii}, xlabel style={font=\small}]
-\addplot+[hist={bins=11,data min=0.5,data max=11.5}, fill=red!50, draw=red!60!black,
-  mark=none] table[y=v]{figs/lifespan_cooldown.dat};
-\end{axis}
-\end{tikzpicture}
-\caption{Rozkład „długości życia” pionka -- maksymalnej liczby odwróceń pojedynczego pola w~partii
-(góra: klasyk, dół: cooldown; wspólna oś $x$). Pod regułą stygnięcia rozkład ma wyraźnie krótszy
-ogon -- świeże bicia są chwilowo chronione.}
+\caption{Rozkład „długości życia” pionka -- maksymalnej liczby odwróceń pojedynczego pola w~partii.
+Pod regułą stygnięcia rozkład ma wyraźnie krótszy ogon -- świeże bicia są chwilowo chronione.}
 \label{fig:lifespan}
 \end{figure}

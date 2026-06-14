@@ -86,6 +86,19 @@ def export_gamelen(tour):
           "v\n" + "\n".join(str(int(v)) for v in sub.n_plies) + "\n")
 
 
+def export_forced_pass(tour):
+    """Mid-game forced passes per game (n_plies-n_placements-2) per variant.
+
+    A PASS means the side to move had no legal placement; the 2 trailing passes
+    that end every game (board-full handshake) are excluded.
+    """
+    for variant in ("classic", "cooldown"):
+        sub = tour[tour.variant == variant]
+        mid = (sub.n_plies - sub.n_placements - 2).clip(lower=0)
+        w(f"forcedpass_{variant}.dat",
+          "v\n" + "\n".join(str(int(x)) for x in mid) + "\n")
+
+
 def export_tuning_influence(tuned, untuned):
     """Grouped-bar data: avg WR tuned vs default (literature) params, per method."""
     if untuned is None or not len(untuned):
@@ -134,6 +147,7 @@ def main():
     export_margins(tour)
     export_hists(tour)
     export_gamelen(tour)
+    export_forced_pass(tour)
     export_tuning()
     export_tuning_influence(tour, untuned)
     print(f"wrote .dat files -> {FIGS}")

@@ -73,6 +73,7 @@ def load_run(run_dir: str) -> pd.DataFrame:
                     "result_black": r["result_black"],
                     "piece_diff_black": r["piece_diff_black"],
                     "n_plies": r["n_plies"],
+                    "n_placements": r["n_placements"],
                     "seed_game": r["seeds"]["game"],
                     "whipsaw_rate": m.get("whipsaw_rate"),
                     "cooldown_blocked_rate": m.get("cooldown_blocked_rate"),
@@ -370,6 +371,54 @@ def table_cooldown_metrics(tour) -> str:
                       "tab:cooldown_metrics")
 
 
+def forced_pass_data(df) -> dict:
+    """Forced-pass frequency per variant.
+
+    A PASS is emitted exactly when the side to move has no legal placement
+    (engine.legal_moves -> [PASS]); the game loop counts every PASS in n_plies
+    but not in n_placements, so n_passes = n_plies - n_placements. Termination
+    needs two *consecutive* passes, so every game ends with exactly 2 trailing
+    passes (the board-full / mutual-stuck handshake); subtracting them isolates
+    the mid-game situations where one side is frozen while play continues.
+    """
+    out = {}
+    for v in sorted(df.variant.unique()):
+        sub = df[df.variant == v]
+        npass = sub.n_plies - sub.n_placements
+        mid = (npass - 2).clip(lower=0)
+        n = len(sub)
+        ever = int((mid >= 1).sum())
+        _, lo, hi = wilson_ci(ever, n)
+        out[v] = {
+            "n": n,
+            "mean_pass": float(npass.mean()),
+            "mean_mid": float(mid.mean()),
+            "pct_ever": ever / n if n else 0.0,
+            "ever_ci": (lo, hi),
+            "pass_per_ply": float(npass.sum() / sub.n_plies.sum()) if len(sub) else 0.0,
+        }
+    return out
+
+
+def table_forced_pass(df) -> str:
+    """Forced-pass frequency, classic vs cooldown."""
+    fp = forced_pass_data(df)
+    header = ["Wariant", "śr. pasów mid-gry", "\\% partii z $\\geq$1", "pas/półruch"]
+    rows = []
+    for v in ("classic", "cooldown"):
+        if v not in fp:
+            continue
+        d = fp[v]
+        rows.append([v,
+                     _comma(d["mean_mid"], 2),
+                     _comma(100 * d["pct_ever"], 1),
+                     _comma(100 * d["pass_per_ply"], 2)])
+    return _tex_table(rows, header,
+                      "Wymuszone pasy (brak legalnego ruchu) -- partie środkowe "
+                      "(bez końcowych dwóch pasów).",
+                      "tab:forced_pass")
+
+
 def verdict_report(H: dict) -> str:
     lines = ["HYPOTHESIS VERDICTS", "=" * 60, ""]
     holm = H.get("_holm", {})
@@ -565,6 +614,8 @@ def main():
             f.write(table_winrate_matrix(tour, variant))
     with open(os.path.join(TABLES, "cooldown_metrics.tex"), "w") as f:
         f.write(table_cooldown_metrics(tour))
+    with open(os.path.join(TABLES, "forced_pass.tex"), "w") as f:
+        f.write(table_forced_pass(tour))
     with open(os.path.join(TABLES, "hypotheses.tex"), "w") as f:
         f.write(table_hypotheses(H))
     with open(os.path.join(TABLES, "ranking.tex"), "w") as f:
@@ -603,6 +654,21 @@ def main():
         print(f"\nWHIPSAW (classic): median={wr.median():.3f} mean={wr.mean():.3f}")
     if len(br):
         print(f"BLOCKED (cooldown): median={br.median():.3f} mean={br.mean():.3f}")
+
+    # forced-pass frequency for the §7.3 finding (tournament + self-play check)
+    for label, df in (("TOURNAMENT", tour), ("SELF-PLAY", selfp)):
+        if df is None:
+            continue
+        fp = forced_pass_data(df)
+        print(f"\nFORCED PASS ({label}):")
+        for v in ("classic", "cooldown"):
+            if v not in fp:
+                continue
+            d = fp[v]
+            lo, hi = d["ever_ci"]
+            print(f"  {v:8s} n={d['n']:5d}  mean_mid={d['mean_mid']:.3f}  "
+                  f"%games>=1={100*d['pct_ever']:.1f} (CI {100*lo:.1f}-{100*hi:.1f})  "
+                  f"pass/ply={100*d['pass_per_ply']:.2f}%  mean_total={d['mean_pass']:.3f}")
 
     # tuning-influence summary for the §7.4 text
     if untuned is not None:
