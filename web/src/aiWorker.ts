@@ -1,7 +1,8 @@
-// Off-main-thread AI: runs chooseMove so the board never freezes during search.
-// Bundled as a static module worker by Vite — hosts on GitHub Pages unchanged.
+// Off-main-thread AI: runs chooseMove so the board never freezes during search,
+// and streams progress so the UI can show a loading bar. Bundled as a static
+// module worker by Vite — hosts on GitHub Pages unchanged.
 import { State, Variant } from "./engine";
-import { AIKind, chooseMove } from "./ai";
+import { AIConfig, chooseMove } from "./ai";
 
 interface Req {
   gen: number;            // turn token, echoed back so stale results can be dropped
@@ -10,13 +11,12 @@ interface Req {
   cool: number[];         // Set serialized as an array
   passes: number;
   variant: Variant;
-  kind: AIKind;
-  budget: number;
+  cfg: AIConfig;
 }
 
 const ctx = self as unknown as {
   onmessage: ((e: MessageEvent<Req>) => void) | null;
-  postMessage: (m: { gen: number; move: number }) => void;
+  postMessage: (m: { type: "progress" | "result"; gen: number; frac?: number; move?: number }) => void;
 };
 
 ctx.onmessage = (e) => {
@@ -24,6 +24,8 @@ ctx.onmessage = (e) => {
   const state: State = {
     board: r.board, toMove: r.toMove, cool: new Set<number>(r.cool), passes: r.passes,
   };
-  const move = chooseMove(state, r.variant, r.kind, r.budget);
-  ctx.postMessage({ gen: r.gen, move });
+  const move = chooseMove(state, r.variant, r.cfg, (done, total) => {
+    ctx.postMessage({ type: "progress", gen: r.gen, frac: done / total });
+  });
+  ctx.postMessage({ type: "result", gen: r.gen, move });
 };
