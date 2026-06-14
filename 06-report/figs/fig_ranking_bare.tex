@@ -1,0 +1,14 @@
+% bare tikz (no float) for the side-by-side block in §7.1
+\begin{tikzpicture}
+\begin{axis}[ybar, bar width=6pt, width=\linewidth, height=6.2cm,
+  symbolic x coords={UCT-PB-cooldown,UCT-PB-naive,UCT,Cooldown-Buro,Naive-Buro,Random},
+  xtick=data, x tick label style={rotate=30,anchor=east,font=\small},
+  ymin=0, ymax=1, ylabel={śr.\ współczynnik wygranych}, ylabel style={font=\normalsize},
+  y tick label style={font=\small},
+  legend pos=north east, legend style={font=\small},
+  enlarge x limits=0.10, ymajorgrids, tick align=outside]
+\addplot[fill=blue!55] table[x=method,y=classic] {figs/ranking.dat};
+\addplot[fill=red!60]  table[x=method,y=cooldown] {figs/ranking.dat};
+\legend{klasyk,cooldown}
+\end{axis}
+\end{tikzpicture}

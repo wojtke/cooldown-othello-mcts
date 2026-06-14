@@ -1,0 +1,7 @@
+method tuned_classic def_classic tuned_cooldown def_cooldown
+UCT-PB-cooldown 0.8435 0.7870 0.8135 0.7410
+UCT-PB-naive 0.8590 0.8050 0.6440 0.7490
+UCT 0.6325 0.7970 0.7880 0.7370
+Cooldown-Buro 0.3460 0.3030 0.4245 0.3320
+Naive-Buro 0.2790 0.2800 0.2775 0.3820
+Random 0.0400 0.0280 0.0525 0.0590

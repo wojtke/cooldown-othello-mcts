@@ -1,23 +1,17 @@
 \begin{figure}[H]\centering
-\begin{subfigure}{0.49\textwidth}\centering
-\begin{tikzpicture}\begin{axis}[width=7.6cm,height=5.4cm,ymajorgrids,
-  title={\small Whipsaw rate (klasyk)}, ylabel={liczba partii},
-  xlabel={\scriptsize frakcja ruchów nielegalnych pod regułą}]
-\addplot+[hist={bins=20},fill=blue!55,draw=blue!70!black,mark=none]
-  table[y=v]{figs/whipsaw.dat};
-\end{axis}\end{tikzpicture}
-\caption{Klasyk: jak często padają natychmiastowe odbicia.}
-\end{subfigure}\hfill
-\begin{subfigure}{0.49\textwidth}\centering
-\begin{tikzpicture}\begin{axis}[width=7.6cm,height=5.4cm,ymajorgrids,
-  title={\small Cooldown-blocked rate (Cooldown)}, ylabel={liczba partii},
-  xlabel={\scriptsize frakcja decyzji z~zablokowanym ruchem}]
-\addplot+[hist={bins=20},fill=red!60,draw=red!70!black,mark=none]
+\begin{tikzpicture}
+\begin{axis}[width=0.74\textwidth, height=5.4cm, ymajorgrids,
+  title={\small Jak często reguła stygnięcia blokuje ruch (partie Cooldown)},
+  xlabel={frakcja decyzji, w~których reguła blokuje ruch legalny w~klasyce},
+  ylabel={liczba partii}, xmin=0, xmax=1,
+  xlabel style={font=\small}, ylabel style={font=\small}]
+\addplot+[hist={bins=20},fill=red!55,draw=red!70!black,mark=none]
   table[y=v]{figs/blocked.dat};
-\end{axis}\end{tikzpicture}
-\caption{Cooldown: jak często reguła blokuje ruch legalny w~klasyce.}
-\end{subfigure}
-\caption{Częstość aktywacji reguły. Metryki mierzą, jak często reguła \emph{ingeruje} w~grę, a~nie
-jakość zablokowanego ruchu.}
+\end{axis}
+\end{tikzpicture}
+\caption{Rozkład \emph{częstości aktywacji} reguły stygnięcia: w~partiach Cooldown, na jaką część
+decyzji co najmniej jeden ruch legalny w~klasyce jest blokowany przez regułę. Mediana wynosi
+ok.\ 0,56 -- reguła usuwa jakąś opcję w~ponad połowie decyzji, czyli realnie ingeruje w~grę.
+(Metryka mierzy częstość, nie jakość zablokowanego ruchu.)}
 \label{fig:cdmetrics}
 \end{figure}

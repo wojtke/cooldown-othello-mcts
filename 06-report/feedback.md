@@ -1,33 +1,30 @@
 - report is generally good, language is good, not too complex and not verbose
-- -
 
+in section 1 - "Rap ort jest dokumentem samo dzielnym" avoid this kind of text 
 
-5. when you format like this (bolded header embedded in start of paragraph), do not do indent and make sure there is some space before previous par
+try to fit both table 1 and fig 1 side by side, "srednia" is not necessary
+fig 2- drop y labels on cooldown heatmap since we see them on the left already, make all labels 20% bigger and numbers in heatmap too
+fig3 - you do not have to have a different color for each method, it makes it hader to read actually, also make sure the labels are bigger and make sure you fit all the boxplot on the plot (expand range to theoretical max and mark it)
 
-5. why is implementation details in analiza statystyczna?
+fig4 - not sure what those charts mean. fraction of blocked vs number of games? i mean that those two charts seem like a comparison but its not. please rethink this.
 
-6.1 - we have some torunament but we should mention here how many games in what configuration etc. the charts are nice, but i would prefer pgp plots
+fig5 - its interesting but hard to read. please intead make it 2 charts top bottom so we can actually compare
 
-also some general ranking would be nice - table with avg winrate of each method averaged over all games classic vs cooldown
+rysunek 6 - needs legend, the grey dotted line is barely visible.
 
+rysunek 7 - not much informative tbh, we can drop it. 
 
-6.2 
-cool charts but if they are crammed side by side we cannot see much. also those two things do not seem closely related. maybe push the barchart in the section above?
+table 3 - kluczowy efekt column too long, make it fit without overflowing the table
 
-fig 2b - its hard to understand what are we seeing, probably we need more description. in cooldown how do we know that blocked move is good?
+1. wiadomo±¢ reguªy ma znaczenie dla heurystyki Naive-Buro p o d reguª¡ (100%); naiwna o cena prowadzi do bi¢, które reguªa karze
+(zapa±¢ Naive-Buro - how do we evaluate this? are moves invalid under cooldownn rule blocked or are they punished? 
 
-6.3 interesting, can we find more?
+section 10 - please lets not put this section up. move the bulletpoints elsewhere. create Eksp eryment czªowiekkomputer section structure that we will write in a minute
 
-7. the table 1 is good, but you do not have to shorten so much, like "cool" or tak/nie. say cooldown and potwierdzona/odrzucona
-
--- 
-
-please include table with final hyperparams for all methods
-please include somewhere runtime and machine
-
---
-
-overall the report assumes we read it after reading konspekt, but the report needs to be a standalone document. you need to port content from konspekt to report. you can copypaste some sections, but please do so inteligently - do not describe plan of what experiments to run but more like what we actually ran. if there are inconsistencies in what we executed vs what was in konspekt please add very short justification. please do not copy all sections - if you think something was too verbose in konspekt you can simplify but let me know.
+one more thing im thinking of in hyperparam tuning is to kind of compare how much our specific tuning in a cascade influenced the final results. please investigate deeply and put in that 7.4 section
 
 
 also try to think of more charts to show and more conclusions to draw.
+
+
+overall the report assumes we read it after reading konspekt, but the report needs to be a standalone document. you need to port content from konspekt to report. you can copypaste some sections, but please do so inteligently - do not describe plan of what experiments to run but more like what we actually ran. if there are inconsistencies in what we executed vs what was in konspekt please add very short justification. please do not copy all sections - if you think something was too verbose in konspekt you can simplify but let me know.

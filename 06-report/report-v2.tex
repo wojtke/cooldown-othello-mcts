@@ -18,6 +18,22 @@
 \pgfplotsset{compat=1.18}
 \usepgfplotslibrary{statistics}      % boxplot, hist
 \pgfplotsset{colormap={rylgn}{rgb255=(215,48,39) rgb255=(255,255,191) rgb255=(26,152,80)}}
+\usetikzlibrary{arrows.meta}
+% --- Othello board helpers (TikZ); args are cell-CENTER coordinates in board units ---
+\definecolor{boardgreen}{RGB}{34,120,75}
+\newcommand{\othbg}[2]{% #1=cols #2=rows
+  \fill[boardgreen] (0,0) rectangle (#1,#2);
+  \draw[black!45] (0,0) grid (#1,#2);
+  \draw[black!85,very thick] (0,0) rectangle (#1,#2);}
+\newcommand{\othB}[2]{\shade[ball color=black!82] (#1,#2) circle(0.34);
+  \draw[black,thin] (#1,#2) circle(0.34);}
+\newcommand{\othW}[2]{\shade[ball color=white] (#1,#2) circle(0.34);
+  \draw[black!70,thin] (#1,#2) circle(0.34);}
+\newcommand{\othcool}[2]{\draw[orange,line width=1.3pt] (#1,#2) circle(0.46);}
+\newcommand{\othmove}[2]{\draw[black!85,dashed,line width=1pt] (#1,#2) circle(0.36);}
+\newcommand{\othx}[2]{\draw[red,line width=1.3pt] (#1,#2) circle(0.42);
+  \draw[red,line width=1.4pt] ({#1-0.25},{#2-0.25})--({#1+0.25},{#2+0.25});
+  \draw[red,line width=1.4pt] ({#1-0.25},{#2+0.25})--({#1+0.25},{#2-0.25});}
 \usepackage[numbers]{natbib}
 \bibliographystyle{plainnat}
 
@@ -86,10 +102,6 @@ której wprowadzamy autorską \emph{regułę stygnięcia} (sekcja~\ref{sec:gra})
 wartość ruchów względem klasyki i~pozwala zadać pytanie: czy klasyczne heurystyki i~MCTS pozostają
 skuteczne w~zmienionych warunkach, oraz jak modyfikacja wpływa na balans gry.
 
-Raport jest dokumentem samodzielnym: rozdziały~\ref{sec:gra}--\ref{sec:hipotezy} opisują grę,
-algorytmy, graczy i~hipotezy, a~rozdziały~\ref{sec:metodyka}--\ref{sec:wnioski} -- przebieg
-i~wyniki rzeczywiście przeprowadzonych eksperymentów.
-
 % ============================================================ 2. GRA
 \section{Gra i~reguła stygnięcia}\label{sec:gra}
 
@@ -102,6 +114,9 @@ pionki przeciwnika zostają odwrócone na własny kolor. Gracz bez legalnego ruc
 pod rząd kończą grę. Wygrywa gracz z~większą liczbą pionków. Gramy na planszy \textbf{6$\times$6}
 (zamiast 8$\times$8), co redukuje przestrzeń stanów o~kilkanaście rzędów wielkości i~umożliwia
 statystycznie wiarygodne porównania wielu wariantów MCTS, zachowując elementy strategii Othello.
+Pozycję startową pokazuje rysunek~\ref{fig:board}.
+
+\input{figs/fig_board.tex}
 
 \subsection{Reguła stygnięcia (Cooldown)}\label{sec:cooldown-rule}
 Stan gry to para $(B, C)$, gdzie $B$ to konfiguracja planszy, a~$C$ to zbiór pól ze znacznikiem
@@ -112,7 +127,11 @@ i~nie może zostać odwrócony w~tej turze.
 \textbf{Legalność.} Stawiając pionek na pustym polu $p$, dla każdego z~8~kierunków idziemy od $p$:
 puste pole lub krawędź odrzuca linię; pionek własnego koloru zamyka linię, która jest akceptowana
 \emph{wtedy i~tylko wtedy}, gdy po drodze wystąpił co najmniej jeden pionek przeciwnika \emph{bez}
-znacznika stygnięcia. Ruch jest legalny, jeśli istnieje co najmniej jedna akceptowana linia.
+znacznika stygnięcia. Ruch jest legalny, jeśli istnieje co najmniej jedna akceptowana linia. Ruch,
+który łamałby regułę, jest po prostu \emph{niedostępny} -- silnik usuwa go ze zbioru legalnych
+ruchów; nie ma osobnego mechanizmu \emph{kary}. Gracz zawsze wybiera wyłącznie spośród ruchów
+legalnych, więc „zapaść” gracza naiwnego (sekcja~\ref{sec:weryfikacja}) wynika nie z~karania
+ruchów, lecz z~grania legalnych bić, które reguła czyni strategicznie kruchymi.
 
 \textbf{Egzekucja.} Po legalnym ruchu: (1)~zdejmujemy wszystkie znaczniki ($C\!\leftarrow\!\emptyset$),
 (2)~stawiamy pionek na $p$, (3)~w~akceptowanych liniach odwracamy tylko pionki przeciwnika
@@ -120,6 +139,9 @@ znacznika stygnięcia. Ruch jest legalny, jeśli istnieje co najmniej jedna akce
 z~wszystkimi właśnie odwróconymi pionkami. Pas wykonuje wyłącznie krok~(1). Przypadki graniczne:
 świeżo postawiony pionek też trafia do $C$ (jest chroniony przez jedną turę); ostudzone pionki
 w~linii mieszanej przepuszczamy przezroczyście; pas zeruje $C$ (znaczniki się nie kumulują).
+Rysunek~\ref{fig:cooldown} pokazuje regułę w~działaniu na małym przykładzie.
+
+\input{figs/fig_cooldown.tex}
 
 \textbf{Po co ta reguła.} W~klasycznym Othello \emph{whipsaw} -- naprzemienne odwracanie tych
 samych pionków -- jest częstą taktyką. Reguła stygnięcia eliminuje natychmiastowe odwzajemnienie
@@ -132,10 +154,13 @@ skalibrowane dla swobodnego bicia, nie uwzględniają chwilowej ochrony odwracan
 \subsection{Złożoność -- weryfikacja empiryczna}\label{sec:complexity}
 Przed głównymi eksperymentami zmierzyliśmy długość gry i~rozgałęzienie w~1000~partiach losowych na
 wariant. Reguła stygnięcia \textbf{obniża średnie rozgałęzienie} z~5,3 (klasyk) do~4,5 (cooldown),
-bo część bić jest zablokowana, ale \textbf{nie skraca gry}: średnia długość wynosi $\approx$34
-półruchy w~obu wariantach, bo plansza i~tak się zapełnia. (Konspekt szacował długość Cooldown na
-$\sim$28; pomiar pokazał wartość wyższą -- por.\ sekcja~\ref{sec:odstepstwa}.) Iloczyn
-rozgałęzienia i~długości mieści się w~zakładanej skali złożoności dla rzetelnych porównań MCTS.
+bo część bić jest zablokowana, ale \textbf{nie skraca gry}: średnia długość to $\approx$34--35
+półruchów w~obu wariantach (rys.~\ref{fig:gamelen} pokazuje rozkład w~turnieju), bo plansza i~tak
+się zapełnia. Jest to odstępstwo od~konspektu, który szacował długość Cooldown na $\sim$28 -- to
+korekta wcześniejszego oszacowania, nie zmiana planu. Iloczyn rozgałęzienia i~długości mieści się w~zakładanej skali
+złożoności dla rzetelnych porównań MCTS.
+
+\input{figs/fig_gamelen.tex}
 
 % ============================================================ 3. ALGORYTMY
 \section{Algorytmy}\label{sec:algorytmy}
@@ -235,11 +260,22 @@ wszystkich jej partiach. W~obu wariantach MCTS zdecydowanie przewyższa heurysty
 jest \textbf{UCT-PB-cooldown}, jako jedyny utrzymujący wysoki wynik w~obu wariantach
 (0,84/0,81). Ciekawe są dwa zjawiska: UCT-PB-naive jest mocny na klasyku (0,86), ale
 \emph{załamuje się} pod regułą stygnięcia (0,64) -- naiwna heurystyka myli poszukiwanie; bazowy UCT
-przeciwnie -- jest \emph{lepszy} pod regułą (0,79) niż na klasyku (0,63).
+przeciwnie -- wygląda na \emph{lepszego} pod regułą (0,79) niż na klasyku (0,63), choć ten niski wynik
+na~klasyku to w~dużej mierze artefakt strojenia (źle dobrane $c$ -- por.\ sekcja~\ref{sec:tuning-results}).
 
-\input{../05-analysis/tables/ranking.tex}
-
-\input{figs/fig_ranking.tex}
+\begin{figure}[H]\centering
+\begin{minipage}[c]{0.57\textwidth}\centering
+\input{figs/fig_ranking_bare.tex}
+\captionof{figure}{Średni współczynnik wygranych metod na obu wariantach gry (te same dane co
+tab.~\ref{tab:ranking}).}\label{fig:ranking}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.40\textwidth}\centering\small
+\captionof{table}{Ranking: średni współczynnik wygranych każdej metody, uśredniony po wszystkich
+jej partiach turniejowych.}\label{tab:ranking}
+\vspace{3pt}
+\input{../05-analysis/tables/ranking_tabular.tex}
+\end{minipage}
+\end{figure}
 
 Pełną strukturę par pokazują heatmapy współczynników wygranych (rys.~\ref{fig:heatmaps}): wartość
 to odsetek wygranych gracza z~wiersza przeciw graczowi z~kolumny.
@@ -254,14 +290,12 @@ heurystyki i~gracz losowy mają mediany ujemne lub bliskie zera.
 \input{figs/fig_margin.tex}
 
 \subsection{Metryki specyficzne dla reguły stygnięcia}
-Aby zmierzyć, jak często reguła w~ogóle „działa”, liczymy dwie wielkości (rys.~\ref{fig:cdmetrics}).
-\emph{Whipsaw rate} (partie klasyczne) to odsetek faktycznie zagranych ruchów, które byłyby
-\emph{nielegalne} pod regułą stygnięcia -- mierzy, jak często w~normalnej grze padają natychmiastowe
-odbicia, które reguła by zablokowała. \emph{Cooldown-blocked rate} (partie Cooldown) to odsetek
-decyzji, w~których co najmniej jeden ruch legalny w~klasyce jest zablokowany przez regułę. Obie
-metryki mierzą \emph{częstość aktywacji} reguły, a~nie jakość zablokowanego ruchu -- nie twierdzimy,
-że zablokowany ruch jest „dobry”; pokazujemy jedynie, że reguła realnie ingeruje w~grę (mediana
-kilkunastu procent decyzji).
+Aby zmierzyć, jak często reguła w~ogóle „działa”, śledzimy, w~jakiej części decyzji reguła blokuje
+ruch, który byłby legalny w~klasyce (rys.~\ref{fig:cdmetrics}). Mediana wynosi ok.\ \textbf{0,56} --
+reguła usuwa jakąś dostępną w~klasyce opcję w~ponad połowie decyzji, więc realnie ingeruje w~grę.
+Patrząc z~drugiej strony: w~partiach klasycznych ok.\ \textbf{28\%} faktycznie zagranych ruchów to
+natychmiastowe odbicia (\emph{whipsaw}), które reguła stygnięcia eliminuje. Obie liczby mierzą
+\emph{częstość aktywacji} reguły, a~nie jakość konkretnego ruchu.
 
 \input{figs/fig_cdmetrics.tex}
 
@@ -286,7 +320,26 @@ dla UCT-PB-cooldown na Cooldown ($c{=}0{,}54$, $w_H{=}8{,}7$).
 
 \input{figs/fig_tuning_uct.tex}
 
-\input{figs/fig_tuning_slices.tex}
+\textbf{Jak bardzo strojenie wpłynęło na wyniki?} Płaska funkcja celu (rys.~\ref{fig:tuning})
+ostrzega, że strojenie silnych graczy jest słabo ograniczone -- ale czy faktycznie nie zaszkodziło?
+Aby to sprawdzić, powtórzyliśmy \emph{cały} turniej z~parametrami domyślnymi (literaturowymi:
+$c{=}\sqrt2$, wagi${=}1{,}0$) na tych samych parach i~ziarnach, po czym porównaliśmy oba rankingi
+(tab.~\ref{tab:tuning-influence}, rys.~\ref{fig:tuning-influence}). Efekt okazał się
+\emph{niejednorodny}: średnia bezwzględna zmiana współczynnika wygranych to ok.\ 6~p.p., a~w~skrajnym
+przypadku aż 16~p.p. Strojenie pomogło heurystyce Cooldown-Buro oraz wariantowi progressive bias
+świadomemu reguły, ale \emph{zaszkodziło} kilku graczom -- najmocniej bazowemu UCT na~klasyku, gdzie
+wybrane $c{=}2{,}23$ daje wynik o~16~p.p.\ \emph{gorszy} niż literaturowe $\sqrt2$. To bezpośredni
+skutek nasycenia: cel strojenia (wobec słabych zestawów kontrolnych) nie odróżniał dobrych wartości
+$c$ od~złych, więc wybór nie uogólnił się na~pełną stawkę. Ranking jest odporny na~krańcach
+(UCT-PB-cooldown na~czele, Random na~końcu), ale środek się przetasowuje -- przy parametrach
+domyślnych trzy warianty MCTS są niemal równe. Wniosek: nasza kaskada strojenia była dla
+najsilniejszych graczy \emph{co najwyżej neutralna}, a~lokalnie szkodliwa; przewaga tych graczy
+pochodzi z~samego MCTS, nie z~kalibracji parametrów. Naturalny kierunek poprawy to silniejsze zestawy
+kontrolne w~strojeniu.
+
+\input{../05-analysis/tables/tuning_influence.tex}
+
+\input{figs/fig_tuning_influence.tex}
 
 % ============================================================ 8. WERYFIKACJA HIPOTEZ
 \section{Weryfikacja hipotez}\label{sec:weryfikacja}
@@ -322,31 +375,43 @@ są pouczające, nie negatywne. Najważniejsze wnioski:
     ale jego przewaga nad bazowym UCT jest niewielka; dodatkowo naiwna heurystyka w~progressive
     bias \emph{szkodzi} pod regułą (UCT-PB-naive: 0,86 klasyk $\to$ 0,64 cooldown).
   \item \textbf{Świadomość reguły ma znaczenie dla heurystyki.} Cooldown-Buro miażdży Naive-Buro
-    pod regułą (100\%); naiwna ocena prowadzi do bić, które reguła karze (zapaść Naive-Buro).
+    pod regułą (100\%). Reguła nie „karze” ruchów -- nielegalne bicia są po prostu niedostępne --
+    lecz naiwna ocena wybiera legalne bicia, które reguła czyni kruchymi (stąd zapaść Naive-Buro).
   \item \textbf{Heurystyka „trwałości bicia” jest ogólnie wartościowa} -- pomaga także w~klasyku,
     a~nie tylko pod regułą (stąd odrzucenie H3 jako hipotezy o~izolacji efektu).
   \item \textbf{Reguła zmienia balans gry} -- znika strukturalna przewaga drugiego gracza
     (H4), więc Cooldown Othello jest wariantem bardziej zrównoważonym, a~jednocześnie realnie
-    ingeruje w~grę (krótszy ogon „długości życia” pionków, kilkanaście procent zablokowanych
+    ingeruje w~grę (krótszy ogon „długości życia” pionków, blokada jakiejś opcji w~ponad połowie
     decyzji).
-  \item \textbf{MCTS lubi tę regułę} -- bazowy UCT radzi sobie \emph{lepiej} pod regułą niż na
-    klasyku względem pola, co wzmacnia obraz z~H1.
+  \item \textbf{Strojenie kaskadowe nie poprawiło silnych graczy.} Powtórzenie turnieju
+    z~parametrami domyślnymi zmienia wyniki średnio o~ok.\ 6~p.p.\ w~niejednorodnych kierunkach,
+    a~bazowemu UCT na~klasyku strojenie wręcz \emph{zaszkodziło} (źle dobrane $c$). Przewaga
+    najlepszych graczy pochodzi z~MCTS, nie z~kalibracji hiperparametrów -- a~cel strojenia warto
+    wzmocnić silniejszymi zestawami kontrolnymi (sekcja~\ref{sec:tuning-results}).
+  \item \textbf{Ostrożnie z~porównaniem klasyk--cooldown dla samego UCT.} Pozorna przewaga bazowego
+    UCT pod regułą (0,79 vs 0,63) wynika w~dużej mierze ze źle dobranego $c$ na~klasyku; przy
+    parametrach domyślnych ta różnica niemal znika.
 \end{itemize}
 
-% ============================================================ 10. ODSTĘPSTWA
-\section{Ograniczenia i~odstępstwa od~konspektu}\label{sec:odstepstwa}
-\begin{itemize}[leftmargin=1.4em,itemsep=2pt]
-  \item \textbf{Długość gry.} Konspekt szacował średnią długość Cooldown na $\sim$28~ruchów; pomiar
-    (1000~partii losowych) dał $\approx$34 -- plansza zapełnia się niezależnie od reguły. To
-    korekta szacunku, nie zmiana planu.
-  \item \textbf{Strojenie $c$ słabo ograniczone.} Dla silnych graczy funkcja celu strojenia nasyca
-    się (zestawy kontrolne są dla nich za słabe), więc część hiperparametrów MCTS jest słabo
-    określona (rys.~\ref{fig:tuning}). Wzmocnienie zestawów kontrolnych to naturalny kierunek
-    poprawy.
-  \item \textbf{Eksperyment człowiek--komputer} przewidziany w~konspekcie \emph{nie został}
-    przeprowadzony w~tej iteracji; przygotowano natomiast działający interfejs webowy gry, gotowy do
-    takiego badania.
-\end{itemize}
+% ============================================================ 10. EKSPERYMENT CZŁOWIEK–KOMPUTER
+\section{Eksperyment człowiek--komputer}\label{sec:human}
+Konspekt przewidywał badanie z~udziałem ludzi (partie przeciw najsilniejszemu agentowi). W~tej
+iteracji przygotowano w~tym celu działający interfejs webowy gry, ale samego badania jeszcze nie
+przeprowadzono -- jest to odstępstwo od~konspektu. Poniższa struktura zostanie uzupełniona po
+wykonaniu badania.
+
+\subsection{Cel i~protokół}
+\emph{[Do uzupełnienia.]} Planowane: kilku uczestników, po kilka partii na osobę w~obu wariantach,
+przeciw UCT-PB-cooldown; mierzone wielkości -- wynik i~różnica pionków, czas decyzji oraz krótka
+ankieta subiektywnych odczuć (w~szczególności jak reguła stygnięcia zmienia odbiór gry).
+
+\subsection{Interfejs webowy}
+Grę zaimplementowano jako aplikację Vite/TypeScript (tryb hot-seat oraz gra z~lekkim agentem
+działającym w~przeglądarce), wdrożoną na~GitHub Pages. Poprawność silnika reguł zweryfikowano
+względem implementacji referencyjnej z~sekcji~\ref{sec:metodyka}.
+
+\subsection{Wyniki}
+\emph{[Do uzupełnienia po~przeprowadzeniu badania.]}
 
 % ============================================================ 11. LLM
 \section{Wykorzystanie dużych modeli językowych}

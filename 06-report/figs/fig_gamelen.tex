@@ -1,0 +1,18 @@
+\begin{figure}[H]\centering
+\begin{tikzpicture}
+\begin{axis}[width=0.80\textwidth, height=4.8cm, ymajorgrids,
+  xlabel={długość partii (półruchy)}, ylabel={liczba partii},
+  xlabel style={font=\small}, ylabel style={font=\small},
+  xmin=14, xmax=42, legend pos=north west, legend style={font=\small}]
+\addplot+[hist={bins=27,data min=14.5,data max=41.5}, fill=blue!40, draw=blue!60!black,
+  opacity=0.6, mark=none] table[y=v]{figs/gamelen_classic.dat};
+\addplot+[hist={bins=27,data min=14.5,data max=41.5}, fill=red!45, draw=red!60!black,
+  opacity=0.6, mark=none] table[y=v]{figs/gamelen_cooldown.dat};
+\legend{klasyk,cooldown}
+\end{axis}
+\end{tikzpicture}
+\caption{Rozkład długości partii (liczba półruchów) w~obu wariantach. Reguła stygnięcia
+\emph{nie skraca} gry -- plansza i~tak się zapełnia -- a~mediana ($\approx$35) jest wyższa niż
+zakładane w~konspekcie $\sim$28.}
+\label{fig:gamelen}
+\end{figure}

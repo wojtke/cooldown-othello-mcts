@@ -314,15 +314,26 @@ def fig_cooldown_metrics(tour: pd.DataFrame):
 # Tables
 # ---------------------------------------------------------------------------
 
-def _tex_table(body_rows, header, caption, label) -> str:
-    cols = "l" + "r" * (len(header) - 1)
-    lines = [r"\begin{table}[H]", r"\centering", r"\small",
-             rf"\begin{{tabular}}{{{cols}}}", r"\toprule",
+def _bare_tabular(body_rows, header, colspec=None) -> str:
+    """Just the tabular block (no float, no caption) — for side-by-side minipages."""
+    cols = colspec or ("l" + "r" * (len(header) - 1))
+    lines = [rf"\begin{{tabular}}{{{cols}}}", r"\toprule",
              " & ".join(header) + r" \\", r"\midrule"]
     lines += [" & ".join(row) + r" \\" for row in body_rows]
-    lines += [r"\bottomrule", r"\end{tabular}",
-              rf"\caption{{{caption}}}", rf"\label{{{label}}}", r"\end{table}"]
+    lines += [r"\bottomrule", r"\end{tabular}"]
     return "\n".join(lines)
+
+
+def _tex_table(body_rows, header, caption, label, colspec=None) -> str:
+    lines = [r"\begin{table}[H]", r"\centering", r"\small",
+             _bare_tabular(body_rows, header, colspec),
+             rf"\caption{{{caption}}}", rf"\label{{{label}}}", r"\end{table}"]
+    return "\n".join(lines)
+
+
+def _comma(x, d) -> str:
+    """Polish decimal comma, fixed precision."""
+    return f"{x:.{d}f}".replace(".", ",")
 
 
 def table_winrate_matrix(tour, variant) -> str:
@@ -384,13 +395,11 @@ def table_hypotheses(H: dict) -> str:
     holm = H.get("_holm", {})
     rows = []
     eff = {
-        "H1": lambda h: (f"UCT vs Naive-Buro: {h['cooldown_rate']:.2f} cooldown / "
-                         f"{h['classic_rate']:.2f} klasyk"),
-        "H2": lambda h: f"przewaga UCT-PB-cooldown nad UCT: {h['edge_pp']:.0f} p.p.",
-        "H3": lambda h: (f"Cooldown-Buro vs Naive-Buro: {h['cooldown_edge_pp']:.0f} p.p. cooldown / "
-                         f"{h['classic_edge_pp']:.0f} p.p. klasyk"),
-        "H4": lambda h: (f"biały (2.~gracz): {h['classic']['white_rate']:.2f} klasyk / "
-                         f"{h['cooldown']['white_rate']:.2f} cooldown"),
+        "H1": lambda h: f"WR {_comma(h['cooldown_rate'],2)}/{_comma(h['classic_rate'],2)} (cd/kl)",
+        "H2": lambda h: f"+{h['edge_pp']:.0f}~p.p.\\ nad UCT",
+        "H3": lambda h: f"+{h['cooldown_edge_pp']:.0f}/+{h['classic_edge_pp']:.0f}~p.p.\\ (cd/kl)",
+        "H4": lambda h: (f"biały {_comma(h['classic']['white_rate'],2)}/"
+                         f"{_comma(h['cooldown']['white_rate'],2)} (kl/cd)"),
     }
     for key in ("H1", "H2", "H3", "H4"):
         if key not in H:
@@ -400,10 +409,10 @@ def table_hypotheses(H: dict) -> str:
         verdict = "potwierdzona" if h.get("supported") else "odrzucona"
         rows.append([key, verdict, eff[key](h),
                      f"{p:.3f}", f"{holm.get(key, float('nan')):.3f}"])
-    # wider table -> use full \textwidth via tabularx-free manual sizing
+    # fixed-width wrapping column for the effect text so it never overflows
     body = _tex_table(rows, header, "Weryfikacja hipotez (wielkość efektu, "
                       "$p$-wartość testu i~$p$ po korekcie Holma--Bonferroniego).",
-                      "tab:hypotheses")
+                      "tab:hypotheses", colspec="l l p{4.6cm} r r")
     return body
 
 
@@ -425,17 +434,63 @@ def ranking_data(tour):
     return order, data
 
 
-def table_ranking(tour) -> str:
+def _ranking_rows(tour):
     order, data = ranking_data(tour)
-    header = ["Metoda", "śr. WR klasyk", "śr. WR cooldown", "średnia"]
-    rows = []
-    for p in order:
-        c, cd = data[p]["classic"], data[p]["cooldown"]
-        rows.append([PRETTY[p], f"{c:.3f}", f"{cd:.3f}", f"{(c + cd) / 2:.3f}"])
+    header = ["Metoda", "klasyk", "cooldown"]
+    rows = [[PRETTY[p], _comma(data[p]["classic"], 3), _comma(data[p]["cooldown"], 3)]
+            for p in order]
+    return rows, header
+
+
+def table_ranking(tour) -> str:
+    rows, header = _ranking_rows(tour)
     return _tex_table(rows, header,
                       "Ranking: średni współczynnik wygranych każdej metody, uśredniony po "
                       "wszystkich jej partiach turniejowych (po obu kolorach i~wszystkich "
                       "przeciwnikach).", "tab:ranking")
+
+
+def table_ranking_bare(tour) -> str:
+    """Just the tabular (3 cols, ordered by mean WR) for a side-by-side minipage."""
+    rows, header = _ranking_rows(tour)
+    return _bare_tabular(rows, header)
+
+
+def tuning_influence_data(tuned, untuned):
+    """Per-method avg WR with tuned vs default (literature) params, both variants.
+
+    Returns (order, data) where data[p][variant] = (wr_tuned, wr_default).
+    `order` follows the tuned ranking (strongest first).
+    """
+    order, _ = ranking_data(tuned)
+    data = {}
+    for p in order:
+        data[p] = {}
+        for v in ("classic", "cooldown"):
+            t = player_avg_winrate(tuned, v, p)[0]
+            d = player_avg_winrate(untuned, v, p)[0]
+            data[p][v] = (t, d)
+    return order, data
+
+
+def table_tuning_influence(tuned, untuned) -> str:
+    """How much did tuning move each method's overall win rate vs literature defaults."""
+    order, data = tuning_influence_data(tuned, untuned)
+    header = ["Metoda", "klasyk: str.", "dom.", "$\\Delta$",
+              "cooldown: str.", "dom.", "$\\Delta$"]
+    rows = []
+    dpp = lambda x: "0" if abs(x) < 0.5 else f"{x:+.0f}"
+    for p in order:
+        (tc, dc), (tk, dk) = data[p]["classic"], data[p]["cooldown"]
+        rows.append([PRETTY[p],
+                     _comma(tc, 3), _comma(dc, 3), dpp((tc - dc) * 100),
+                     _comma(tk, 3), _comma(dk, 3), dpp((tk - dk) * 100)])
+    return _tex_table(rows, header,
+                      "Wpływ strojenia na wyniki końcowe: średni współczynnik wygranych każdej "
+                      "metody z~parametrami \\emph{strojonymi} (str.) i~\\emph{domyślnymi} "
+                      "literaturowymi (dom.: $c{=}\\sqrt2$, wagi${=}1{,}0$), wraz z~różnicą "
+                      "$\\Delta$ w~punktach procentowych. Te same pary i~ziarna w~obu turniejach.",
+                      "tab:tuning-influence")
 
 
 _HP_PRETTY = {"naive_buro": "Naive-Buro", "cooldown_buro": "Cooldown-Buro", "uct": "UCT",
@@ -488,6 +543,8 @@ def main():
     ap = argparse.ArgumentParser(description="Analyse Cooldown-Othello results")
     ap.add_argument("--tournament", required=True, help="tournament run dir")
     ap.add_argument("--selfplay", default=None, help="self-play run dir (for H4)")
+    ap.add_argument("--tournament-untuned", default=None,
+                    help="counterfactual tournament run dir (default/literature params)")
     args = ap.parse_args()
 
     os.makedirs(TABLES, exist_ok=True)
@@ -495,8 +552,10 @@ def main():
 
     tour = load_run(args.tournament)
     selfp = load_run(args.selfplay) if args.selfplay else None
+    untuned = load_run(args.tournament_untuned) if args.tournament_untuned else None
     print(f"Loaded {len(tour)} tournament games"
-          + (f", {len(selfp)} self-play games" if selfp is not None else ""))
+          + (f", {len(selfp)} self-play games" if selfp is not None else "")
+          + (f", {len(untuned)} untuned games" if untuned is not None else ""))
 
     H = evaluate_hypotheses(tour, selfp)
 
@@ -510,6 +569,11 @@ def main():
         f.write(table_hypotheses(H))
     with open(os.path.join(TABLES, "ranking.tex"), "w") as f:
         f.write(table_ranking(tour))
+    with open(os.path.join(TABLES, "ranking_tabular.tex"), "w") as f:
+        f.write(table_ranking_bare(tour))
+    if untuned is not None:
+        with open(os.path.join(TABLES, "tuning_influence.tex"), "w") as f:
+            f.write(table_tuning_influence(tour, untuned))
     try:
         with open(os.path.join(TABLES, "hyperparams.tex"), "w") as f:
             f.write(table_hyperparams())
@@ -531,6 +595,27 @@ def main():
     print(f"  {'method':16s} {'classic':>8s} {'cooldown':>8s}")
     for p in order:
         print(f"  {p:16s} {data[p]['classic']:8.3f} {data[p]['cooldown']:8.3f}")
+
+    # cooldown-activity numbers for the §7.3 inline sentence
+    wr = tour[(tour.variant == "classic")].whipsaw_rate.dropna()
+    br = tour[(tour.variant == "cooldown")].cooldown_blocked_rate.dropna()
+    if len(wr):
+        print(f"\nWHIPSAW (classic): median={wr.median():.3f} mean={wr.mean():.3f}")
+    if len(br):
+        print(f"BLOCKED (cooldown): median={br.median():.3f} mean={br.mean():.3f}")
+
+    # tuning-influence summary for the §7.4 text
+    if untuned is not None:
+        order, data = tuning_influence_data(tour, untuned)
+        deltas = []
+        print("\nTUNING INFLUENCE (avg WR tuned vs default, p.p.):")
+        for p in order:
+            for v in ("classic", "cooldown"):
+                t, d = data[p][v]
+                dpp = (t - d) * 100
+                deltas.append(abs(dpp))
+                print(f"  {p:16s} {v:8s} tuned={t:.3f} default={d:.3f}  d={dpp:+.1f}pp")
+        print(f"  mean|Δ|={np.mean(deltas):.1f}pp  max|Δ|={np.max(deltas):.1f}pp")
 
     print("\n" + report)
     print(f"Tables  -> {TABLES}")

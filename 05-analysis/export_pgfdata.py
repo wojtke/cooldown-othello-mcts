@@ -78,6 +78,26 @@ def export_hists(tour):
           "v\n" + "\n".join(str(int(v)) for v in sub.lifespan_max) + "\n")
 
 
+def export_gamelen(tour):
+    """Game length (n_plies) per variant, for a classic-vs-cooldown histogram."""
+    for variant in ("classic", "cooldown"):
+        sub = tour[tour.variant == variant]
+        w(f"gamelen_{variant}.dat",
+          "v\n" + "\n".join(str(int(v)) for v in sub.n_plies) + "\n")
+
+
+def export_tuning_influence(tuned, untuned):
+    """Grouped-bar data: avg WR tuned vs default (literature) params, per method."""
+    if untuned is None or not len(untuned):
+        print("  (skip tuning_influence: no untuned tournament)"); return
+    order, data = A.tuning_influence_data(tuned, untuned)
+    lines = ["method tuned_classic def_classic tuned_cooldown def_cooldown"]
+    for p in order:
+        (tc, dc), (tk, dk) = data[p]["classic"], data[p]["cooldown"]
+        lines.append(f"{SYM[p]} {tc:.4f} {dc:.4f} {tk:.4f} {dk:.4f}")
+    w("ranking_tuned_untuned.dat", "\n".join(lines) + "\n")
+
+
 def _study_dat(name, params, out):
     try:
         s = optuna.load_study(study_name=name, storage=STORAGE)
@@ -94,23 +114,28 @@ def _study_dat(name, params, out):
 
 
 def export_tuning():
+    # only the UCT c-slices are still plotted (fig 6); the PB/Buro slice fig was dropped
     _study_dat("uct_classic", ["c"], "tune_uct_classic.dat")
     _study_dat("uct_cooldown", ["c"], "tune_uct_cooldown.dat")
-    _study_dat("uct_pb_cooldown_cooldown", ["c", "w_H"], "tune_pbcd_cooldown.dat")
-    _study_dat("cooldown_buro_cooldown", ["lambda_c", "w_mob"], "tune_cdburo.dat")
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--tournament", required=True)
+    ap.add_argument("--selfplay", default=None)
+    ap.add_argument("--tournament-untuned", default=None)
     args = ap.parse_args()
     os.makedirs(FIGS, exist_ok=True)
     tour = A.load_run(args.tournament)
+    selfp = A.load_run(args.selfplay) if args.selfplay else None
+    untuned = A.load_run(args.tournament_untuned) if args.tournament_untuned else None
     export_ranking(tour)
     export_heatmaps(tour)
     export_margins(tour)
     export_hists(tour)
+    export_gamelen(tour)
     export_tuning()
+    export_tuning_influence(tour, untuned)
     print(f"wrote .dat files -> {FIGS}")
     print("files:", ", ".join(sorted(os.listdir(FIGS))[:6]), "...")
 

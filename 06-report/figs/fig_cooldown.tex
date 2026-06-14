@@ -1,0 +1,40 @@
+\begin{figure}[H]\centering
+% --- (a) przed ruchem: czarny zbije dwa białe w poziomie ---
+\begin{subfigure}{0.31\textwidth}\centering
+\begin{tikzpicture}[scale=0.66]
+\othbg{4}{3}
+\othB{0.5}{1.5}\othW{1.5}{1.5}\othW{2.5}{1.5}
+\othW{1.5}{0.5}
+\othmove{3.5}{1.5}
+\draw[-{Latex},thick,black] (3.2,1.5)--(1.05,1.5);
+\end{tikzpicture}
+\caption{czarny stawia z~prawej i~bije linię dwóch białych}
+\end{subfigure}\hfill
+% --- (b) po ruchu: nowy + odwrócone stygną ---
+\begin{subfigure}{0.31\textwidth}\centering
+\begin{tikzpicture}[scale=0.66]
+\othbg{4}{3}
+\othB{0.5}{1.5}\othB{1.5}{1.5}\othB{2.5}{1.5}\othB{3.5}{1.5}
+\othW{1.5}{0.5}
+\othcool{1.5}{1.5}\othcool{2.5}{1.5}\othcool{3.5}{1.5}
+\end{tikzpicture}
+\caption{nowy i~odwrócone pionki \emph{stygną} (pomarańczowe -- chronione 1~turę)}
+\end{subfigure}\hfill
+% --- (c) whipsaw zablokowany ---
+\begin{subfigure}{0.31\textwidth}\centering
+\begin{tikzpicture}[scale=0.66]
+\othbg{4}{3}
+\othB{0.5}{1.5}\othB{1.5}{1.5}\othB{2.5}{1.5}\othB{3.5}{1.5}
+\othW{1.5}{0.5}
+\othcool{1.5}{1.5}
+\othx{1.5}{2.5}
+\end{tikzpicture}
+\caption{biały nie odbije od~razu -- ostudzony pionek jest przezroczysty, ruch \emph{nielegalny}}
+\end{subfigure}
+\caption{Działanie reguły stygnięcia. (a)~Czarny wykonuje normalne bicie. (b)~Postawiony i~właśnie
+odwrócone pionki dostają znacznik stygnięcia (pomarańczowy pierścień) i~są chronione przez jedną
+turę. (c)~Biały chciałby natychmiast odbić środkowy pionek z~góry (między swoimi pionkami), ale
+ostudzony pionek jest \emph{przezroczysty} -- linia nie domyka żadnego bicia, więc ten ruch jest
+nielegalny. Tak reguła eliminuje \emph{whipsaw} (natychmiastowe odwzajemnienie).}
+\label{fig:cooldown}
+\end{figure}

@@ -1,34 +1,49 @@
 \pgfplotsset{marginaxis/.style={
-  boxplot/draw direction=y, width=8cm, height=6cm, ymin=-36, ymax=36,
+  boxplot/draw direction=y, width=8cm, height=6.2cm,
+  ymin=-39, ymax=39, xmin=0.3, xmax=6.7,
   xtick={1,2,3,4,5,6},
   xticklabels={Random,Naive-Buro,Cooldown-Buro,UCT,UCT-PB-naive,UCT-PB-cooldown},
-  x tick label style={rotate=35,anchor=east,font=\tiny},
-  ylabel={różnica pionków}, ymajorgrids,
+  x tick label style={rotate=35,anchor=east,font=\scriptsize},
+  ylabel={różnica pionków}, ylabel style={font=\small}, ymajorgrids,
+  ytick={-36,-24,-12,0,12,24,36}, y tick label style={font=\scriptsize},
   boxplot={box extend=0.55}, mark size=0.5pt, mark=o,
 }}
+% one shared box style (no per-method colours -- easier to read)
+\pgfplotsset{onebox/.style={boxplot, fill=blue!18, draw=blue!60!black,
+  mark options={draw=blue!60!black}}}
+\newcommand{\maxlines}{%
+  \draw[densely dashed,red!70!black] (axis cs:0.3,36)--(axis cs:6.7,36);
+  \draw[densely dashed,red!70!black] (axis cs:0.3,-36)--(axis cs:6.7,-36);
+  \node[anchor=north east,font=\scriptsize,text=red!70!black]
+    at (axis cs:6.7,36) {maks.\ teoret.\ $\pm$36};
+  \draw[gray!60] (axis cs:0.3,0)--(axis cs:6.7,0);
+}
 \begin{figure}[H]\centering
 \begin{subfigure}{0.49\textwidth}\centering
 \begin{tikzpicture}\begin{axis}[marginaxis, title={\small klasyk}]
-\addplot+[boxplot,boxplot/draw position=1] table[y=v]{figs/margin_classic_random.dat};
-\addplot+[boxplot,boxplot/draw position=2] table[y=v]{figs/margin_classic_naive_buro.dat};
-\addplot+[boxplot,boxplot/draw position=3] table[y=v]{figs/margin_classic_cooldown_buro.dat};
-\addplot+[boxplot,boxplot/draw position=4] table[y=v]{figs/margin_classic_uct.dat};
-\addplot+[boxplot,boxplot/draw position=5] table[y=v]{figs/margin_classic_uct_pb_naive.dat};
-\addplot+[boxplot,boxplot/draw position=6] table[y=v]{figs/margin_classic_uct_pb_cooldown.dat};
+\maxlines
+\addplot[onebox,boxplot/draw position=1] table[y=v]{figs/margin_classic_random.dat};
+\addplot[onebox,boxplot/draw position=2] table[y=v]{figs/margin_classic_naive_buro.dat};
+\addplot[onebox,boxplot/draw position=3] table[y=v]{figs/margin_classic_cooldown_buro.dat};
+\addplot[onebox,boxplot/draw position=4] table[y=v]{figs/margin_classic_uct.dat};
+\addplot[onebox,boxplot/draw position=5] table[y=v]{figs/margin_classic_uct_pb_naive.dat};
+\addplot[onebox,boxplot/draw position=6] table[y=v]{figs/margin_classic_uct_pb_cooldown.dat};
 \end{axis}\end{tikzpicture}
 \caption{klasyk}
 \end{subfigure}\hfill
 \begin{subfigure}{0.49\textwidth}\centering
 \begin{tikzpicture}\begin{axis}[marginaxis, title={\small cooldown}]
-\addplot+[boxplot,boxplot/draw position=1] table[y=v]{figs/margin_cooldown_random.dat};
-\addplot+[boxplot,boxplot/draw position=2] table[y=v]{figs/margin_cooldown_naive_buro.dat};
-\addplot+[boxplot,boxplot/draw position=3] table[y=v]{figs/margin_cooldown_cooldown_buro.dat};
-\addplot+[boxplot,boxplot/draw position=4] table[y=v]{figs/margin_cooldown_uct.dat};
-\addplot+[boxplot,boxplot/draw position=5] table[y=v]{figs/margin_cooldown_uct_pb_naive.dat};
-\addplot+[boxplot,boxplot/draw position=6] table[y=v]{figs/margin_cooldown_uct_pb_cooldown.dat};
+\maxlines
+\addplot[onebox,boxplot/draw position=1] table[y=v]{figs/margin_cooldown_random.dat};
+\addplot[onebox,boxplot/draw position=2] table[y=v]{figs/margin_cooldown_naive_buro.dat};
+\addplot[onebox,boxplot/draw position=3] table[y=v]{figs/margin_cooldown_cooldown_buro.dat};
+\addplot[onebox,boxplot/draw position=4] table[y=v]{figs/margin_cooldown_uct.dat};
+\addplot[onebox,boxplot/draw position=5] table[y=v]{figs/margin_cooldown_uct_pb_naive.dat};
+\addplot[onebox,boxplot/draw position=6] table[y=v]{figs/margin_cooldown_uct_pb_cooldown.dat};
 \end{axis}\end{tikzpicture}
 \caption{cooldown}
 \end{subfigure}
-\caption{Różnica pionków na końcu partii (metoda $-$ przeciwnik), wg metody i~wariantu.}
+\caption{Różnica pionków na końcu partii (metoda $-$ przeciwnik), wg metody i~wariantu.
+Czerwone linie przerywane oznaczają maksymalną teoretyczną różnicę ($\pm$36 na planszy 6$\times$6).}
 \label{fig:margin}
 \end{figure}

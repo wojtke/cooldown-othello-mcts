@@ -1,23 +1,28 @@
 \pgfplotsset{tuneaxis/.style={width=7.4cm, height=5.2cm, ymin=0.7, ymax=1.0,
   xmin=0.5, xmax=2.5, xlabel={$c$}, ylabel={\scriptsize śr.\ WR vs kontrola},
-  ymajorgrids, tick align=outside}}
+  ymajorgrids, tick align=outside,
+  legend style={font=\scriptsize, fill=white, fill opacity=0.9, draw=gray!60,
+    at={(0.03,0.04)}, anchor=south west, legend cell align=left}}}
 \begin{figure}[H]\centering
 \begin{subfigure}{0.49\textwidth}\centering
 \begin{tikzpicture}\begin{axis}[tuneaxis, title={\small UCT @ klasyk}]
 \addplot[only marks,mark=*,mark size=1.1pt,color=blue!60]
   table[x=c,y=value]{figs/tune_uct_classic.dat};
-\draw[red,densely dashed] (axis cs:2.23,0.7)--(axis cs:2.23,1.0);
-\draw[gray,dotted] (axis cs:1.414,0.7)--(axis cs:1.414,1.0);
+\addlegendentry{próby Optuny}
+\addplot[red,densely dashed,thick] coordinates {(2.23,0.7) (2.23,1.0)};
+\addlegendentry{najlepsze $c$}
+\addplot[black,densely dotted,very thick] coordinates {(1.414,0.7) (1.414,1.0)};
+\addlegendentry{$\sqrt2$ (lit.)}
 \end{axis}\end{tikzpicture}\caption{UCT @ klasyk}\end{subfigure}\hfill
 \begin{subfigure}{0.49\textwidth}\centering
 \begin{tikzpicture}\begin{axis}[tuneaxis, title={\small UCT @ cooldown}]
 \addplot[only marks,mark=*,mark size=1.1pt,color=blue!60]
   table[x=c,y=value]{figs/tune_uct_cooldown.dat};
-\draw[red,densely dashed] (axis cs:0.52,0.7)--(axis cs:0.52,1.0);
-\draw[gray,dotted] (axis cs:1.414,0.7)--(axis cs:1.414,1.0);
+\addplot[red,densely dashed,thick] coordinates {(0.52,0.7) (0.52,1.0)};
+\addplot[black,densely dotted,very thick] coordinates {(1.414,0.7) (1.414,1.0)};
 \end{axis}\end{tikzpicture}\caption{UCT @ cooldown}\end{subfigure}
 \caption{Zależność celu strojenia od stałej eksploracji $c$ (PDP/slice; każdy punkt to jedna próba
-Optuny). Czerwona linia przerywana -- najlepsze $c$, szara kropkowana -- $\sqrt2$ (literatura).
+Optuny). Czerwona linia przerywana -- najlepsze $c$, czarna kropkowana -- $\sqrt2$ (literatura).
 Funkcja jest niemal płaska, więc $c$ jest słabo ograniczone.}
 \label{fig:tuning}
 \end{figure}

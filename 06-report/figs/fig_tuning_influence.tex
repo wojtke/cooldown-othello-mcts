@@ -1,0 +1,25 @@
+\pgfplotsset{infaxis/.style={ybar, bar width=5pt, width=\linewidth, height=5.4cm,
+  symbolic x coords={UCT-PB-cooldown,UCT-PB-naive,UCT,Cooldown-Buro,Naive-Buro,Random},
+  xtick=data, x tick label style={rotate=30,anchor=east,font=\scriptsize},
+  ymin=0, ymax=1, ylabel={śr.\ WR}, ylabel style={font=\small},
+  enlarge x limits=0.10, ymajorgrids, tick align=outside,
+  legend style={font=\scriptsize, at={(0.5,1.02)}, anchor=south, legend columns=2}}}
+\begin{figure}[H]\centering
+\begin{subfigure}{0.49\textwidth}\centering
+\begin{tikzpicture}\begin{axis}[infaxis, title={\small klasyk}]
+\addplot[fill=blue!55] table[x=method,y=tuned_classic]{figs/ranking_tuned_untuned.dat};
+\addplot[fill=gray!45] table[x=method,y=def_classic]{figs/ranking_tuned_untuned.dat};
+\legend{strojone,domyślne}
+\end{axis}\end{tikzpicture}\caption{klasyk}\end{subfigure}\hfill
+\begin{subfigure}{0.49\textwidth}\centering
+\begin{tikzpicture}\begin{axis}[infaxis, title={\small cooldown}]
+\addplot[fill=red!55] table[x=method,y=tuned_cooldown]{figs/ranking_tuned_untuned.dat};
+\addplot[fill=gray!45] table[x=method,y=def_cooldown]{figs/ranking_tuned_untuned.dat};
+\legend{strojone,domyślne}
+\end{axis}\end{tikzpicture}\caption{cooldown}\end{subfigure}
+\caption{Wpływ strojenia na wyniki końcowe: średni współczynnik wygranych każdej metody
+z~parametrami \emph{strojonymi} vs \emph{domyślnymi} literaturowymi ($c{=}\sqrt2$, wagi${=}1{,}0$).
+Efekt jest niejednorodny (śr.\ $|\Delta|\approx$6~p.p.); najsilniej widać go dla bazowego UCT na
+klasyku, gdzie strojenie \emph{zaszkodziło}. Ranking jest stabilny na~krańcach, środek się przetasowuje.}
+\label{fig:tuning-influence}
+\end{figure}

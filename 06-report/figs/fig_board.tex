@@ -1,0 +1,14 @@
+\begin{figure}[H]\centering
+\begin{tikzpicture}[scale=0.62]
+\othbg{6}{6}
+% pozycja startowa 6x6 (czarny rusza): biały na przekątnej głównej, czarny na przeciwprzekątnej
+\othW{2.5}{3.5}\othB{3.5}{3.5}
+\othB{2.5}{2.5}\othW{3.5}{2.5}
+% etykiety kolumn (a--f) i wierszy (1--6, od góry)
+\foreach \c/\l in {0/a,1/b,2/c,3/d,4/e,5/f} \node[below,font=\scriptsize] at (\c+0.5,-0.05) {\l};
+\foreach \y/\l in {5.5/1,4.5/2,3.5/3,2.5/4,1.5/5,0.5/6} \node[left,font=\scriptsize] at (-0.05,\y) {\l};
+\end{tikzpicture}
+\caption{Pozycja startowa Othello 6$\times$6: cztery pionki w~układzie krzyżowym w~centrum
+(biały na przekątnej głównej, czarny na przeciwprzekątnej). Czarny wykonuje pierwszy ruch.}
+\label{fig:board}
+\end{figure}
