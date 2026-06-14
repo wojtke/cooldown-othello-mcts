@@ -5,56 +5,104 @@
   --panel: #1a1d23;
   --text: #e8eaed;
   --muted: #9aa0a6;
-  --legal: #ffd54a;
+  --legal: #ffd54a;      /* legal-move dot (gold) */
+  --chill: #46d6ec;      /* chilled piece ring (cyan) — distinct from legal */
+  --accent: #ffd54a;
 }
 * { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0; background: var(--bg); color: var(--text);
-  font: 15px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-  display: flex; justify-content: center;
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  display: flex; justify-content: center; touch-action: manipulation;
 }
-#app { width: min(92vw, 460px); padding: 24px 0 40px; }
+#app { width: min(94vw, 460px); padding: 22px 0 40px; }
+
 h1 { font-size: 26px; margin: 0 0 14px; font-weight: 700; }
 h1 .sub { color: var(--muted); font-weight: 400; font-size: 18px; }
+
 .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; margin-bottom: 14px; }
 .controls label { display: flex; flex-direction: column; font-size: 11px; color: var(--muted); gap: 3px; }
+.controls .btns { display: flex; gap: 8px; margin-left: auto; align-self: end; }
 select, button {
   background: var(--panel); color: var(--text); border: 1px solid #2c3038;
   border-radius: 8px; padding: 7px 10px; font-size: 14px; cursor: pointer;
 }
-button#new { align-self: stretch; margin-top: 14px; }
-button:hover, select:hover { border-color: #3a3f49; }
-.scorebar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-variant-numeric: tabular-nums; }
-.scorebar .status { flex: 1; text-align: center; color: var(--muted); font-size: 13px; }
+button { transition: border-color .15s, background .15s, opacity .15s; }
+button:hover:not(:disabled), select:hover { border-color: #3a3f49; }
+button#new:hover { background: #23272f; }
+button:disabled { opacity: .4; cursor: not-allowed; }
+select:disabled { opacity: .45; }
+
+.scorebar {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.scorebar .side { display: inline-flex; align-items: center; gap: 7px; font-size: 17px; font-weight: 600;
+  padding: 4px 8px; border-radius: 999px; border: 1px solid transparent; transition: border-color .2s, background .2s; }
+.scorebar .side.active { border-color: var(--accent); background: rgba(255,213,74,.08); }
+.status-wrap { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.status { text-align: center; color: var(--muted); font-size: 13px; }
+.status.over { color: var(--text); font-weight: 600; }
 .chip { width: 16px; height: 16px; border-radius: 50%; display: inline-block; }
-.chip.black { background: #111; border: 1px solid #444; }
-.chip.white { background: #f3f3f3; }
+.chip.black { background: radial-gradient(circle at 35% 30%, #555, #0a0a0a); border: 1px solid #000; }
+.chip.white { background: radial-gradient(circle at 35% 30%, #fff, #d2d2d2); }
+
+.spinner {
+  width: 13px; height: 13px; border-radius: 50%; flex: none;
+  border: 2px solid rgba(255,255,255,.18); border-top-color: var(--accent);
+  animation: spin .7s linear infinite; visibility: hidden;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
 .board {
   display: grid; gap: 3px; background: var(--felt-line);
   border: 3px solid var(--felt-line); border-radius: 10px; padding: 3px; aspect-ratio: 1;
+  transition: opacity .25s;
 }
+.board.over { opacity: .85; }
 .cell {
   background: var(--felt); border: none; border-radius: 4px; padding: 0;
   position: relative; aspect-ratio: 1; cursor: default; display: grid; place-items: center;
+  perspective: 320px; transition: background .12s;
 }
 .cell.legal { cursor: pointer; }
+.cell.legal:hover { background: #248a58; }
 .cell.legal::after {
-  content: ""; width: 24%; height: 24%; border-radius: 50%;
-  background: var(--legal); opacity: .85;
+  content: ""; position: absolute; width: 26%; height: 26%; border-radius: 50%;
+  background: var(--legal); opacity: .8; box-shadow: 0 0 6px rgba(255,213,74,.5);
 }
 .cell.blocked::before {
-  content: ""; position: absolute; width: 22%; height: 22%; border-radius: 50%;
-  border: 2px dashed rgba(255,255,255,.35);
+  content: ""; position: absolute; width: 30%; height: 30%; border-radius: 50%;
+  border: 2px dashed rgba(255,255,255,.34);
 }
-.cell.last { outline: 2px solid rgba(255,255,255,.5); outline-offset: -2px; }
+.cell.last { outline: 2px solid rgba(255,255,255,.55); outline-offset: -2px; }
+
 .disc {
-  width: 76%; height: 76%; border-radius: 50%; display: block;
-  box-shadow: 0 2px 3px rgba(0,0,0,.4);
+  width: 78%; height: 78%; border-radius: 50%; display: block; transform: scale(0);
+  transition: transform .12s ease;
 }
-.disc.black { background: radial-gradient(circle at 35% 30%, #444, #0a0a0a); }
-.disc.white { background: radial-gradient(circle at 35% 30%, #fff, #cfcfcf); }
-.disc.chilled { box-shadow: 0 0 0 3px var(--legal), 0 2px 3px rgba(0,0,0,.4); }
-.hint { font-size: 12.5px; color: var(--muted); background: var(--panel);
-  border-left: 3px solid var(--legal); padding: 9px 12px; border-radius: 6px; margin-top: 16px; }
+.disc.black, .disc.white { transform: scale(1); box-shadow: 0 2px 3px rgba(0,0,0,.45); }
+.disc.black { background: radial-gradient(circle at 35% 30%, #555, #090909); }
+.disc.white { background: radial-gradient(circle at 35% 30%, #fff, #cdcdcd); }
+.disc.chilled { box-shadow: 0 0 0 3px var(--chill), 0 0 9px rgba(70,214,236,.6), 0 2px 3px rgba(0,0,0,.45); }
+
+.legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; font-size: 11.5px; color: var(--muted); }
+.legend .lg { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 15px; height: 15px; border-radius: 50%; display: inline-block; flex: none; }
+.legend .m-legal { background: var(--legal); opacity: .85; }
+.legend .m-chill { box-shadow: inset 0 0 0 2px var(--chill); background: #2a2f36; }
+.legend .m-block { border: 2px dashed rgba(255,255,255,.4); }
+
+.hint {
+  font-size: 12.5px; color: var(--muted); background: var(--panel);
+  border-left: 3px solid var(--chill); padding: 9px 12px; border-radius: 6px; margin-top: 14px;
+}
+.hint .kw { color: var(--chill); font-weight: 600; }
 .footer { font-size: 12px; color: var(--muted); margin-top: 14px; }
-.footer a { color: var(--legal); }
+.footer a { color: var(--accent); }
+
+@media (max-width: 360px) {
+  .controls .btns { margin-left: 0; }
+  .scorebar .side { font-size: 15px; }
+}
