@@ -337,6 +337,14 @@ def _comma(x, d) -> str:
     return f"{x:.{d}f}".replace(".", ",")
 
 
+def _bold_max_col(values, d) -> list:
+    """Format a column of floats (Polish comma, d decimals); bold the maximum cell(s)."""
+    if not values:
+        return []
+    mx = max(values)
+    return [rf"\textbf{{{_comma(x, d)}}}" if x == mx else _comma(x, d) for x in values]
+
+
 def table_winrate_matrix(tour, variant) -> str:
     players = [p for p in PLAYER_ORDER if p in set(tour.black) | set(tour.white)]
     header = ["Player"] + [PRETTY[p] for p in players]
@@ -486,8 +494,9 @@ def ranking_data(tour):
 def _ranking_rows(tour):
     order, data = ranking_data(tour)
     header = ["Metoda", "klasyk", "cooldown"]
-    rows = [[PRETTY[p], _comma(data[p]["classic"], 3), _comma(data[p]["cooldown"], 3)]
-            for p in order]
+    cl = _bold_max_col([data[p]["classic"] for p in order], 3)   # bold best per column
+    cd = _bold_max_col([data[p]["cooldown"] for p in order], 3)
+    rows = [[PRETTY[p], cl[i], cd[i]] for i, p in enumerate(order)]
     return rows, header
 
 
@@ -527,13 +536,17 @@ def table_tuning_influence(tuned, untuned) -> str:
     order, data = tuning_influence_data(tuned, untuned)
     header = ["Metoda", "klasyk: str.", "dom.", "$\\Delta$",
               "cooldown: str.", "dom.", "$\\Delta$"]
-    rows = []
     dpp = lambda x: "0" if abs(x) < 0.5 else f"{x:+.0f}"
-    for p in order:
+    tc_c = _bold_max_col([data[p]["classic"][0] for p in order], 3)   # bold best per WR column
+    dc_c = _bold_max_col([data[p]["classic"][1] for p in order], 3)
+    tk_c = _bold_max_col([data[p]["cooldown"][0] for p in order], 3)
+    dk_c = _bold_max_col([data[p]["cooldown"][1] for p in order], 3)
+    rows = []
+    for i, p in enumerate(order):
         (tc, dc), (tk, dk) = data[p]["classic"], data[p]["cooldown"]
         rows.append([PRETTY[p],
-                     _comma(tc, 3), _comma(dc, 3), dpp((tc - dc) * 100),
-                     _comma(tk, 3), _comma(dk, 3), dpp((tk - dk) * 100)])
+                     tc_c[i], dc_c[i], dpp((tc - dc) * 100),
+                     tk_c[i], dk_c[i], dpp((tk - dk) * 100)])
     return _tex_table(rows, header,
                       "Wpływ strojenia na wyniki końcowe: średni współczynnik wygranych każdej "
                       "metody z~parametrami \\emph{strojonymi} (str.) i~\\emph{domyślnymi} "
