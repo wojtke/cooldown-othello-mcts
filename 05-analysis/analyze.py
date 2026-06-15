@@ -337,6 +337,15 @@ def _comma(x, d) -> str:
     return f"{x:.{d}f}".replace(".", ",")
 
 
+def _pfmt(p) -> str:
+    """Format a p-value with Polish comma; never print 0,000 (use a bound instead)."""
+    if p != p:                      # NaN
+        return "--"
+    if p < 1e-3:
+        return "$<\\!0{,}001$"
+    return _comma(p, 3)
+
+
 def _bold_max_col(values, d) -> list:
     """Format a column of floats (Polish comma, d decimals); bold the maximum cell(s)."""
     if not values:
@@ -465,7 +474,7 @@ def table_hypotheses(H: dict) -> str:
         p = h.get("p", float("nan"))
         verdict = "potwierdzona" if h.get("supported") else "odrzucona"
         rows.append([key, verdict, eff[key](h),
-                     f"{p:.3f}", f"{holm.get(key, float('nan')):.3f}"])
+                     _pfmt(p), _pfmt(holm.get(key, float('nan')))])
     # fixed-width wrapping column for the effect text so it never overflows
     body = _tex_table(rows, header, "Weryfikacja hipotez (wielkość efektu, "
                       "$p$-wartość testu i~$p$ po korekcie Holma--Bonferroniego).",
@@ -569,10 +578,10 @@ def table_hyperparams() -> str:
     rows = []
     for d in items:
         bp = d["best_params"]
-        f = lambda k: f"{bp[k]:.2f}" if k in bp else "--"
+        f = lambda k: _comma(bp[k], 2) if k in bp else "--"
         vlabel = "oba*" if d["algo"] in ("naive_buro", "cooldown_buro") else d["variant"]
         rows.append([_HP_PRETTY[d["algo"]], vlabel, f("c"), f("w_mob"), f("lambda_c"),
-                     f("w_H"), f"{d['best_value']:.3f}"])
+                     f("w_H"), _comma(d['best_value'], 3)])
     return _tex_table(rows, header,
                       "Końcowe hiperparametry po strojeniu (Optuna TPE) oraz współczynnik "
                       "wygranych wobec zestawu kontrolnego. *heurystyki strojono raz na "

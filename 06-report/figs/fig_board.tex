@@ -1,5 +1,6 @@
-% Panele (b) midgame i (c) endgame wygenerowane z silnika: figs/_gen_boards.py
-% (pozycje realne; (b) seed=1 po 18 półruchach, (c) seed=4721 -- pozycja końcowa, pat).
+% Panele (b) i (c) generowane przez figs/_gen_boards.py:
+% (b) midgame z silnika (seed=1, 18 półruchów); (c) realna pozycja końcowa z partii
+% człowiek--komputer (game_logs/person1.json, gra ofdusbbd vs UCT-PB-cooldown, 17:19).
 \begin{figure}[H]\centering
 % --- (a) pozycja startowa ---
 \begin{subfigure}{0.32\textwidth}\centering
@@ -10,7 +11,7 @@
 \foreach \c/\l in {0/a,1/b,2/c,3/d,4/e,5/f} \node[below,font=\scriptsize] at (\c+0.5,-0.05) {\l};
 \foreach \y/\l in {5.5/1,4.5/2,3.5/3,2.5/4,1.5/5,0.5/6} \node[left,font=\scriptsize] at (-0.05,\y) {\l};
 \end{tikzpicture}
-\caption{pozycja startowa -- czarny rusza}
+\caption{}
 \end{subfigure}\hfill
 % --- (b) środkowa faza gry, legalne ruchy czarnego (przerywane okręgi) ---
 \begin{subfigure}{0.32\textwidth}\centering
@@ -26,27 +27,27 @@
 \foreach \c/\l in {0/a,1/b,2/c,3/d,4/e,5/f} \node[below,font=\scriptsize] at (\c+0.5,-0.05) {\l};
 \foreach \y/\l in {5.5/1,4.5/2,3.5/3,2.5/4,1.5/5,0.5/6} \node[left,font=\scriptsize] at (-0.05,\y) {\l};
 \end{tikzpicture}
-\caption{środkowa faza -- przerywane okręgi to legalne ruchy czarnego}
+\caption{}
 \end{subfigure}\hfill
-% --- (c) pozycja końcowa: żadna ze stron nie ma legalnego ruchu ---
+% --- (c) realna pozycja końcowa z partii człowiek--komputer (ofdusbbd, 17:19) ---
 \begin{subfigure}{0.32\textwidth}\centering
 \begin{tikzpicture}[scale=0.55]
 \othbg{6}{6}
-\othW{0.5}{5.5}\othW{1.5}{5.5}\othW{2.5}{5.5}
-\othW{0.5}{4.5}\othW{1.5}{4.5}\othW{2.5}{4.5}\othB{5.5}{4.5}
-\othW{0.5}{3.5}\othW{1.5}{3.5}\othW{2.5}{3.5}\othB{3.5}{3.5}\othB{4.5}{3.5}\othB{5.5}{3.5}
-\othW{0.5}{2.5}\othW{1.5}{2.5}\othB{2.5}{2.5}\othB{3.5}{2.5}\othB{4.5}{2.5}\othB{5.5}{2.5}
-\othW{0.5}{1.5}\othB{1.5}{1.5}\othB{2.5}{1.5}\othB{3.5}{1.5}\othB{4.5}{1.5}\othB{5.5}{1.5}
-\othB{0.5}{0.5}\othB{1.5}{0.5}\othB{2.5}{0.5}\othB{3.5}{0.5}\othB{4.5}{0.5}\othB{5.5}{0.5}
+\othB{0.5}{5.5}\othB{1.5}{5.5}\othW{2.5}{5.5}\othW{3.5}{5.5}\othW{4.5}{5.5}\othW{5.5}{5.5}
+\othB{0.5}{4.5}\othB{1.5}{4.5}\othB{2.5}{4.5}\othB{3.5}{4.5}\othB{4.5}{4.5}\othW{5.5}{4.5}
+\othB{0.5}{3.5}\othB{1.5}{3.5}\othB{2.5}{3.5}\othB{3.5}{3.5}\othB{4.5}{3.5}\othW{5.5}{3.5}
+\othB{0.5}{2.5}\othB{1.5}{2.5}\othW{2.5}{2.5}\othB{3.5}{2.5}\othB{4.5}{2.5}\othW{5.5}{2.5}
+\othB{0.5}{1.5}\othW{1.5}{1.5}\othW{2.5}{1.5}\othW{3.5}{1.5}\othW{4.5}{1.5}\othW{5.5}{1.5}
+\othW{0.5}{0.5}\othW{1.5}{0.5}\othW{2.5}{0.5}\othW{3.5}{0.5}\othW{4.5}{0.5}\othW{5.5}{0.5}
 \foreach \c/\l in {0/a,1/b,2/c,3/d,4/e,5/f} \node[below,font=\scriptsize] at (\c+0.5,-0.05) {\l};
 \foreach \y/\l in {5.5/1,4.5/2,3.5/3,2.5/4,1.5/5,0.5/6} \node[left,font=\scriptsize] at (-0.05,\y) {\l};
 \end{tikzpicture}
-\caption{pozycja końcowa -- pięć pustych pól, lecz żadna ze stron nie domyka bicia}
+\caption{}
 \end{subfigure}
 \caption{Othello 6$\times$6. (a)~Pozycja startowa: cztery pionki w~układzie krzyżowym w~centrum
 (biały na przekątnej głównej, czarny na przeciwprzekątnej), czarny wykonuje pierwszy ruch.
-(b)~Przykładowa pozycja w~środkowej fazie gry; przerywane okręgi zaznaczają wszystkie legalne
-ruchy strony na ruchu (czarnego). (c)~Pozycja końcowa: mimo pięciu pustych pól żadna ze stron nie
-może wykonać bicia, więc obaj gracze pasują i~partia się kończy (tu wygrywa czarny 19:12).}
+(b)~Przykładowa pozycja w~środkowej fazie gry; przerywane okręgi zaznaczają wszystkie legalne ruchy
+strony na ruchu (czarnego). (c)~Pozycja końcowa z~rzeczywistej partii człowiek--komputer: po
+zapełnieniu planszy wygrywa strona z~większą liczbą pionków (tu komputer 19:17).}
 \label{fig:board}
 \end{figure}
