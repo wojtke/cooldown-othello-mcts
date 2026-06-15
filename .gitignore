@@ -4,6 +4,7 @@ __pycache__/
 .DS_Store
 mails.md
 logs/
+game_logs/
 04-experiments/results/
 03-tuning/optuna/
 # 03-tuning/results/ and 05-analysis/{figures,tables}/ ARE committed (report inputs)
