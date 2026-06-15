@@ -1,0 +1,4 @@
+opponent Osoba1 Osoba2 Osoba3
+Random 75.0 100.0 50.0
+Cooldown-Buro 25.0 75.0 0.0
+UCT-PB-cooldown 0.0 0.0 0.0

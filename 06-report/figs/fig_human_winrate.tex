@@ -1,0 +1,21 @@
+\begin{figure}[H]\centering
+\begin{tikzpicture}
+\begin{axis}[ybar, bar width=7pt, width=0.80\textwidth, height=5.2cm,
+  symbolic x coords={Random,Cooldown-Buro,UCT-PB-cooldown}, xtick=data,
+  x tick label style={font=\small}, enlarge x limits=0.30,
+  ymin=0, ymax=112, ytick={0,25,50,75,100}, ylabel={wygrane partie [\%]},
+  ylabel style={font=\small}, ymajorgrids, tick align=outside,
+  nodes near coords, every node near coord/.append style={font=\tiny},
+  nodes near coords={\pgfmathprintnumber[precision=0,fixed]{\pgfplotspointmeta}},
+  legend style={font=\scriptsize, at={(0.5,1.03)}, anchor=south, legend columns=3}]
+\addplot[fill=blue!55] table[x=opponent,y=Osoba1]{figs/human_winrate.dat};
+\addplot[fill=teal!70] table[x=opponent,y=Osoba2]{figs/human_winrate.dat};
+\addplot[fill=orange!75] table[x=opponent,y=Osoba3]{figs/human_winrate.dat};
+\legend{Osoba 1,Osoba 2,Osoba 3}
+\end{axis}
+\end{tikzpicture}
+\caption{Odsetek partii wygranych przez każdego z~trzech graczy-ludzi przeciw trzem przeciwnikom
+(wariant stygnięcia, po~cztery partie na parę). Z~Random wygrywa każdy, z~heurystyką Cooldown-Buro
+ujawnia się różnica umiejętności, a~najsilniejszego agenta UCT-PB-cooldown nie pokonał nikt.}
+\label{fig:human-winrate}
+\end{figure}
