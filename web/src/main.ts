@@ -3,7 +3,7 @@ import {
   applyMove, BLACK, cooldownBlocked, counts, EMPTY, initialState, isTerminal,
   legalMoves, N, NN, PASS, State, Variant, WHITE, winner,
 } from "./engine";
-import { AIKind, configFor, isMCTS } from "./ai";
+import { AIKind, configFor } from "./ai";
 
 type Opponent = AIKind | "human";
 type Phase = "idle" | "thinking" | "passing";
@@ -33,7 +33,7 @@ const byId = <T extends HTMLElement>(id: string) => app.querySelector("#" + id) 
 
 // cached DOM refs (set in build())
 const cells: HTMLButtonElement[] = [];
-let elStatus: HTMLElement, elSpin: HTMLElement, elProg: HTMLElement, elProgBar: HTMLElement,
+let elStatus: HTMLElement, elSpin: HTMLElement,
   elScoreB: HTMLElement, elScoreW: HTMLElement, elSideB: HTMLElement, elSideW: HTMLElement,
   elBoard: HTMLElement, elHint: HTMLElement, elLegend: HTMLElement, elLogCount: HTMLElement,
   selVariant: HTMLSelectElement, selOpp: HTMLSelectElement, selColor: HTMLSelectElement,
@@ -137,7 +137,6 @@ function advance() {
   }
   if (!humanTurnFor(ui.state)) {                          // AI to move → ask the worker
     ui.phase = "thinking";
-    if (isMCTS(ui.opponent as AIKind)) elProgBar.style.width = "0%";
     render();
     const myGen = gen, s = ui.state;
     const cfg = configFor(ui.opponent as AIKind, ui.variant, AI_BUDGET);
@@ -168,11 +167,6 @@ function doMove(m: number) {
 function onAIResult(msg: { gen: number; move: number }) {
   if (msg.gen !== gen || ui.phase !== "thinking") return;  // stale (new game / undo happened)
   doMove(msg.move);
-}
-
-function onAIProgress(msg: { gen: number; frac: number }) {
-  if (msg.gen !== gen || ui.phase !== "thinking") return;
-  elProgBar.style.width = (msg.frac * 100).toFixed(0) + "%";
 }
 
 function onCell(p: number) {
@@ -257,9 +251,7 @@ function render() {
   else status = humanTurnFor(s) ? "Your move" : `${name(s.toMove)} to move`;
   elStatus.textContent = status;
   elStatus.classList.toggle("over", term);
-  const thinkingMCTS = ui.phase === "thinking" && isMCTS(ui.opponent as AIKind);
-  elSpin.style.visibility = (ui.phase === "thinking" && !thinkingMCTS) ? "visible" : "hidden";
-  elProg.classList.toggle("show", thinkingMCTS);
+  elSpin.style.visibility = ui.phase === "thinking" ? "visible" : "hidden";
   elBoard.classList.toggle("over", term);
 
   selColor.disabled = ui.opponent === "human";
@@ -314,7 +306,6 @@ function build() {
       <span class="status-wrap"><span class="spinner" id="spin"></span><span class="status" id="status"></span></span>
       <span class="side" id="sideW"><b id="scoreW">2</b><span class="chip white"></span></span>
     </div>
-    <div class="progress" id="prog"><div class="bar" id="progbar"></div></div>
     <div class="board" id="board" style="grid-template-columns:repeat(${N},1fr)"></div>
     <div class="legend" id="legend">
       <span class="lg"><i class="m-legal"></i>legal move</span>
@@ -335,7 +326,6 @@ function build() {
     </div>
   `;
   elBoard = byId("board"); elStatus = byId("status"); elSpin = byId("spin");
-  elProg = byId("prog"); elProgBar = byId("progbar");
   elScoreB = byId("scoreB"); elScoreW = byId("scoreW"); elSideB = byId("sideB"); elSideW = byId("sideW");
   elHint = byId("hint"); elLegend = byId("legend"); elLogCount = byId("logcount");
   selVariant = byId("variant"); selOpp = byId("opp"); selColor = byId("color");
@@ -368,10 +358,7 @@ function build() {
       logs = []; saveLogs(); updateLogBar();
     }
   };
-  worker.onmessage = (e: MessageEvent) => {
-    const m = e.data;
-    if (m.type === "progress") onAIProgress(m); else onAIResult(m);
-  };
+  worker.onmessage = (e: MessageEvent) => onAIResult(e.data);
   document.addEventListener("keydown", (e) => {
     if ((e.target as HTMLElement).tagName === "SELECT") return;
     if (e.key === "n") newGame();

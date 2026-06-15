@@ -55,17 +55,6 @@ select:disabled { opacity: .45; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.progress {
-  height: 5px; border-radius: 3px; margin-bottom: 12px; overflow: hidden;
-  background: #20242b; opacity: 0; transition: opacity .15s;
-}
-.progress.show { opacity: 1; }
-.progress .bar {
-  height: 100%; width: 0%; border-radius: 3px;
-  background: linear-gradient(90deg, var(--accent), #ffe9a3);
-  transition: width .12s linear;
-}
-
 .board {
   display: grid; gap: 3px; background: var(--felt-line);
   border: 3px solid var(--felt-line); border-radius: 10px; padding: 3px; aspect-ratio: 1;
